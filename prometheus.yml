@@ -1,0 +1,66 @@
+global:
+  scrape_interval: 10s
+  scrape_timeout: 5s
+
+scrape_configs:
+  - job_name: "fastapi-app"
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "app1:8000"
+        labels:
+          instance: app1
+
+      - targets:
+          - "app2:8000"
+        labels:
+          instance: app2
+
+      - targets:
+          - "app3:8000"
+        labels:
+          instance: app3
+
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['host.docker.internal:9114']
+        labels:
+          instance: nginx_proxy
+
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: [ "cadvisor:8080" ]
+
+  - job_name: "worker"
+    static_configs:
+      - targets:
+          - "vip_worker1:9001"
+        labels:
+              instance: vip_worker1
+      - targets:
+          - "vip_worker2:9001"
+        labels:
+          instance: vip_worker2
+      - targets:
+          - "vip_worker3:9001"
+        labels:
+          instance: vip_worker3
+      - targets:
+          - "shared_worker1:9001"
+        labels:
+          instance: shared_worker1
+      - targets:
+          - "shared_worker2:9001"
+        labels:
+          instance: shared_worker2
+      - targets:
+          - "shared_worker3:9001"
+        labels:
+          instance: shared_worker3
+
+  - job_name: "autoscaler"
+    static_configs:
+      - targets:
+          - "autoscaler:9005"
+        labels:
+          instance: autoscaler

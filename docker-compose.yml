@@ -1,0 +1,203 @@
+services:
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - appnet
+
+  vip_worker1:
+    build: .
+    # command: what process the container should run when it starts
+    command: python3 -m app.model.worker
+    container_name: vip_worker1
+    environment:
+      - WORKER_ROLE=vip
+      - WORKER_ID=1
+    depends_on:
+      - redis
+    networks:
+      - appnet
+    restart: unless-stopped
+
+  vip_worker2:
+    build: .
+    command: python3 -m app.model.worker
+    container_name: vip_worker2
+    environment:
+      - WORKER_ROLE=vip
+      - WORKER_ID=2
+    depends_on:
+      - redis
+    networks:
+      - appnet
+    restart: unless-stopped
+
+  vip_worker3:
+    build: .
+    # command: what process the container should run when it starts
+    command: python3 -m app.model.worker
+    container_name: vip_worker3
+    environment:
+      - WORKER_ROLE=vip
+      - WORKER_ID=3
+    depends_on:
+      - redis
+    networks:
+      - appnet
+    restart: unless-stopped
+
+  shared_worker1:
+    build: .
+    command: python3 -m app.model.worker
+    container_name: shared_worker1
+    environment:
+      - WORKER_ROLE=shared
+      - WORKER_ID=1
+    depends_on:
+      - redis
+    networks:
+      - appnet
+    restart: unless-stopped
+
+  shared_worker2:
+    build: .
+    command: python3 -m app.model.worker
+    container_name: shared_worker2
+    environment:
+      - WORKER_ROLE=shared
+      - WORKER_ID=2
+    depends_on:
+      - redis
+    networks:
+      - appnet
+    restart: unless-stopped
+
+  shared_worker3:
+    build: .
+    command: python3 -m app.model.worker
+    container_name: shared_worker3
+    environment:
+      - WORKER_ROLE=shared
+      - WORKER_ID=3
+    depends_on:
+      - redis
+    networks:
+      - appnet
+    restart: unless-stopped
+
+  autoscaler:
+    build: .
+    command: python3 -m app.model.run_autoscaler
+    depends_on:
+      - redis
+    networks:
+      - appnet
+    restart: unless-stopped
+
+  # three copies of your app
+  app1:
+    build: .
+    container_name: app1
+    labels:
+      - "service=app1"
+    environment:
+      - INSTANCE_ID=app1
+      - LOG_FORMAT=pretty
+    networks:
+      - appnet
+    depends_on:
+      - redis
+    # volumes: mount host machine directory into container filesystem
+    volumes:
+      - .:/app
+
+  app2:
+    build: .
+    container_name: app2
+    labels:
+      - "service=app2"
+    environment:
+      - INSTANCE_ID=app2
+      - LOG_FORMAT=pretty
+    networks:
+      - appnet
+    depends_on:
+      - redis
+    volumes:
+      - .:/app
+
+  app3:
+    build: .
+    container_name: app3
+    labels:
+      - "service=app3"
+    environment:
+      - INSTANCE_ID=app3
+      - LOG_FORMAT=pretty
+    networks:
+      - appnet
+    depends_on:
+      - redis
+    volumes:
+      - .:/app
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: nginx_proxy
+    labels:
+      - "service=nginx"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8000:80"     # host:container
+    depends_on:
+      - app1
+      - app2
+      - app3
+    networks:
+      - appnet
+    # localhost:8000 → nginx:80 → appX:8000
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - appnet
+
+  grafana:
+    image: grafana/grafana
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin333
+      - GF_SECURITY_ADMIN_PASSWORD=admin333
+    networks:
+      - appnet
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - appnet
+
+networks:
+  appnet:
+    driver: bridge
+
+volumes:
+  grafana-storage:
