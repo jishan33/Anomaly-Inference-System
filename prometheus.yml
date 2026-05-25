@@ -23,7 +23,7 @@ scrape_configs:
 
   - job_name: 'nginx'
     static_configs:
-      - targets: ['host.docker.internal:9114']
+      - targets: ['nginx_exporter:9113']
         labels:
           instance: nginx_proxy
 
