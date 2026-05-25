@@ -148,8 +148,6 @@ services:
   nginx:
     image: nginx:stable-alpine
     container_name: nginx_proxy
-    labels:
-      - "service=nginx"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     ports:

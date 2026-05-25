@@ -1,7 +1,7 @@
 
-from .model import model_instance, PredictionResult
-from .features import extract_features
 import time
+from .features import extract_features
+from .model import model_instance, PredictionResult
 from app.model.metrics import MODEL_LATENCY, MODEL_PREDICTIONS
 
 

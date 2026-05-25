@@ -2,11 +2,11 @@ import time
 
 from prometheus_client import start_http_server
 
+from app.api.temp_transaction_store import redis_client
 from app.model.config import MIN_SHARED_WORKERS, MIN_VIP_WORKERS, SCALE_UP_QUEUE_DEPTH, MAX_SHARED_WORKERS, \
     MAX_VIP_WORKERS, SCALE_DOWN_QUEUE_DEPTH
 from app.model.metrics import SCALING_EVENTS_TOTAL, ACTIVE_SHARED_WORKERS, ACTIVE_VIP_WORKERS
 from app.model.queue_service import FREE_QUEUE, VIP_QUEUE
-from temp_transaction_store import redis_client
 
 start_http_server(9005)
 

@@ -1,9 +1,10 @@
 import json
 import time
+from typing import List
+
+from app.api.temp_transaction_store import redis_client
 from app.model.inference import run_inference
 from app.model.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS
-from temp_transaction_store import redis_client
-from typing import List
 
 
 def fetch_batch(queue_name: str, max_batch_size: int, max_wait_time: float) -> List[dict]:
