@@ -1,14 +1,14 @@
 import os
 import time
 from typing import NamedTuple
+from prometheus_client import start_http_server
 
+from app.api.temp_transaction_store import redis_client
 from app.model.batch import process_batch
 from app.model.metrics import WORKER_ACTIVE_STATE
 from app.model.model import model_instance
 from app.model.queue_service import FREE_QUEUE, VIP_QUEUE
 from app.model.scheduler import get_batch_scheduler
-from prometheus_client import start_http_server
-from temp_transaction_store import redis_client
 
 print("worker.py loaded")
 

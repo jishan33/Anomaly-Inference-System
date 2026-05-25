@@ -3,8 +3,8 @@ import random
 import logging
 from typing import Callable
 
-from config import INSTANCE_ID
-from metrics import RETRY_COUNT
+from app.api.config import INSTANCE_ID
+from app.api.metrics import RETRY_COUNT
 
 logger = logging.getLogger("retry")
 

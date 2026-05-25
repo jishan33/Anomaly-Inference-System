@@ -1,7 +1,7 @@
 from typing import NamedTuple
-
 from sklearn.ensemble import IsolationForest
 from pydantic import BaseModel, Field
+
 from app.model.features import Features
 
 class PredictionResult(NamedTuple):

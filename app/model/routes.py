@@ -1,8 +1,9 @@
 import json
 from fastapi import APIRouter
+
+from app.api.temp_transaction_store import redis_client
 from app.model.model import PredictRequest
 from app.model.queue_service import enqueue_job
-from temp_transaction_store import redis_client
 
 router = APIRouter()
 # @router.post(path="/predict", response_model = PredictResponse)

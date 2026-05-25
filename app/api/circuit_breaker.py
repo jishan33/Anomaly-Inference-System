@@ -1,8 +1,8 @@
 import logging
 import time
 
-from config import INSTANCE_ID
-from metrics import CIRCUIT_BREAKER_STATE
+from app.api.config import INSTANCE_ID
+from app.api.metrics import CIRCUIT_BREAKER_STATE
 from enum import Enum
 from typing import Callable
 
