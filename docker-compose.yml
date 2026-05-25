@@ -1,3 +1,4 @@
+name: anomaly-inference-system
 services:
 
   redis:
@@ -160,6 +161,18 @@ services:
     networks:
       - appnet
     # localhost:8000 → nginx:80 → appX:8000
+
+  nginx_exporter:
+    image: nginx/nginx-prometheus-exporter
+    container_name: nginx_exporter
+    command:
+      - -nginx.scrape-uri=http://nginx_proxy/nginx-status
+    ports:
+      - "9114:9113"
+    depends_on:
+      - nginx
+    networks:
+      - appnet
 
   prometheus:
     image: prom/prometheus
