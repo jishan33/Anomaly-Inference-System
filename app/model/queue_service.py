@@ -1,12 +1,16 @@
 
 import json
+import logging
 import time
 import uuid
 from typing import TypedDict
 
 from app.model.config import VIP_QUEUE, FREE_QUEUE
 from app.model.metrics import QUEUE_INGRESS_TOTAL
-from app.shared.redis import redis_circuit_breaker
+from app.shared.redis import redis_circuit_breaker, redis_client
+
+logger = logging.getLogger("queue_service")
+
 
 class QueueJob(TypedDict):
     job_id: str
@@ -40,6 +44,19 @@ def enqueue_job(redis_client, transaction: dict):
         return job_id
 
     except Exception as e:
-        print(f'redis unavailable during equeue {tier}: {e}')
+        logger.error(f'redis unavailable during equeue {tier}: {e}')
         raise
+
+
+
+def get_queue_depth(queue_name: str) -> int|None:
+    try:
+        queue_depth = redis_circuit_breaker.call(
+            lambda: redis_client.llen(queue_name),
+            operation_name=f"redis_llen {queue_name}"
+        )
+        return queue_depth
+    except Exception as e:
+        logger.error(f"redis is unavailable for llen operation: {e}")
+
 

@@ -1,9 +1,12 @@
-from typing import NamedTuple
+from typing import NamedTuple, List, Tuple
 
+from app.model.batch import fetch_batch
 from app.model.config import BatchConfig, BATCH_THRESHOLDS, RATIO_THRESHOLDS
 from app.model.config import FREE_QUEUE, VIP_QUEUE
 from app.model.metrics import  CURRENT_BATCH_SIZE, CURRENT_BATCH_TIMEOUT
 from app.api.temp_transaction_store import redis_client
+from app.model.queue_service import get_queue_depth
+from app.shared.redis import redis_circuit_breaker
 
 
 class BatchScheduler(NamedTuple):
@@ -27,22 +30,42 @@ def get_free_batch_ratio(vip_depth: int) -> float :
             return ratio
     return 1.0
 
+def get_vip_batch_config() -> Tuple[BatchConfig, float] :
+    vip_depth: int|None = get_queue_depth(VIP_QUEUE)
+
+    if vip_depth is not None:
+        vip_config = get_batch_config(vip_depth)
+        free_batch_ratio = get_free_batch_ratio(vip_depth)
+        CURRENT_BATCH_SIZE.labels("vip").set(vip_config.max_batch_size)
+        CURRENT_BATCH_TIMEOUT.labels("vip").set(vip_config.max_wait_time)
+        return vip_config, free_batch_ratio
+    else:
+        return BatchConfig(0, 0), 1
+
+def get_free_batch_config(free_batch_ratio: float) -> BatchConfig :
+    free_depth: int|None = get_queue_depth(FREE_QUEUE)
+
+    if free_depth is not None:
+        free_config = get_batch_config(free_depth)
+        free_max_batch_size = round(free_batch_ratio * free_config.max_batch_size)
+
+        CURRENT_BATCH_SIZE.labels("free").set(free_max_batch_size)
+        CURRENT_BATCH_TIMEOUT.labels("free").set(free_config.max_wait_time)
+        return BatchConfig(
+            max_batch_size=free_max_batch_size,
+            max_wait_time=free_config.max_wait_time
+        )
+    else:
+        return BatchConfig(0, 0)
+
+
+
 def get_batch_scheduler() -> BatchScheduler:
-    vip_depth = redis_client.llen(VIP_QUEUE)
-    vip_config = get_batch_config(vip_depth)
-    CURRENT_BATCH_SIZE.labels("vip").set(vip_config.max_batch_size)
-    CURRENT_BATCH_TIMEOUT.labels("vip").set(vip_config.max_wait_time)
-
-    free_depth = redis_client.llen(FREE_QUEUE)
-    free_batch_ratio = get_free_batch_ratio(vip_depth)
-    free_config = get_batch_config(free_depth)
-    free_max_batch_size = round(free_batch_ratio * free_config.max_batch_size)
-
-    CURRENT_BATCH_SIZE.labels("free").set(free_max_batch_size)
-    CURRENT_BATCH_TIMEOUT.labels("free").set(free_config.max_wait_time)
+    vip_config, free_batch_ratio = get_vip_batch_config()
+    free_config = get_free_batch_config(free_batch_ratio)
     return BatchScheduler(
         vip_max_batch_size= vip_config.max_batch_size,
-        free_max_batch_size= free_max_batch_size,
+        free_max_batch_size= free_config.max_batch_size,
         vip_max_wait_time= vip_config.max_wait_time,
         free_max_wait_time= free_config.max_wait_time
     )

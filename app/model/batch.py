@@ -6,7 +6,7 @@ from app.api.temp_transaction_store import redis_client
 from app.model.config import JOB_TTL_SECONDS, DEAD_LETTER_QUEUE, MAX_JOB_RETRIES, RawJob, OptionalRawJob, DlqPayload
 from app.model.inference import run_inference
 from app.model.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS
-from app.model.queue_service import QueueJob
+from app.model.queue_service import QueueJob, get_queue_depth
 from app.model.validate import validate_queue_job
 from app.shared.redis import redis_circuit_breaker
 
@@ -95,15 +95,12 @@ def process_batch(queue_name: str, tier: str, max_batch_size: int, max_wait_time
     Returns True if work was processed, False if queue was empty.
     """
     batch = fetch_batch(queue_name, max_batch_size, max_wait_time)
-    try:
-        # Update queue depth metric
-        queue_depth = redis_circuit_breaker.call(
-            lambda : redis_client.llen(queue_name),
-            operation_name="redis_llen"
-        )
+
+    # Update queue depth metric
+    queue_depth: int|None = get_queue_depth(queue_name)
+    if queue_depth is not None:
         QUEUE_DEPTH.labels(worker_role=worker_role, tier=tier).set(queue_depth)
-    except Exception as e:
-        print(f"redis unavailable during llen: {e}")
+    else:
         return False
 
 
