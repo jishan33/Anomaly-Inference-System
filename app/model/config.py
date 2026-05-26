@@ -1,6 +1,11 @@
 from typing import List, NamedTuple, Tuple
 
 
+JOB_TTL_SECONDS = 30
+MAX_JOB_RETRIES = 3
+DEAD_LETTER_QUEUE = "dead_letter_queue"
+
+
 # -------------------------------------------------------------------------
 # Configurations & Thresholds
 # -------------------------------------------------------------------------
