@@ -7,21 +7,9 @@ import logging
 from app.api.config import INSTANCE_ID
 from app.api.metrics import VOLUME_GAUGE
 from app.api.retry import retry_with_backoff
-from app.api.circuit_breaker import CircuitBreaker
+from app.shared.redis import redis_client, redis_circuit_breaker
 
 logger = logging.getLogger("temp_transaction_store")
-redis_circuit_breaker = CircuitBreaker(
-    failure_threshold=5,
-    recovery_timeout=10
-)
-
-# connect to Redis (service name = redis)
-redis_client = redis.Redis(
-    host="redis",
-    port=6379,
-    decode_responses=True,
-    socket_connect_timeout=1,  # connection timeout
-)
 
 KEY = "transactions"
 WINDOW_SECONDS = 60

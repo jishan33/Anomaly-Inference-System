@@ -6,16 +6,29 @@ from app.api.temp_transaction_store import redis_client
 from app.model.config import JOB_TTL_SECONDS, DEAD_LETTER_QUEUE, MAX_JOB_RETRIES
 from app.model.inference import run_inference
 from app.model.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS
+from app.shared.redis import redis_circuit_breaker
 
-def move_to_dlp(raw_job: object, reason: str):
-    dlp_payload = {
+RowJob = bytes | str
+
+def move_to_dlq(raw_job: object, reason: str) -> bool:
+    dlq_payload = {
         "raw_job": raw_job.decode() if isinstance(raw_job, bytes) else raw_job,
         "reason": reason,
         "failed_at": time.time(),
     }
-
-    redis_client.rpush(DEAD_LETTER_QUEUE, json.dumps(dlp_payload))
-    print(f"Moved job to DLQ. reason={reason}")
+    try:
+        redis_circuit_breaker.call(
+            lambda : redis_client.rpush(DEAD_LETTER_QUEUE, json.dumps(dlq_payload)),
+            operation_name= "redis_dlq_push"
+        )
+        print(f"Moved job to DLQ. reason={reason}")
+        return True
+    except Exception as e:
+        print(
+            f"CRITICAL: failed to move job to DLQ. "
+            f"reason={reason}, error={e}, raw_job={raw_job}"
+        )
+        return False
 
 def fetch_batch(queue_name: str, max_batch_size: int, max_wait_time: float) -> List[dict]:
     """
@@ -30,7 +43,14 @@ def fetch_batch(queue_name: str, max_batch_size: int, max_wait_time: float) -> L
         if batch and (time.time() - start_time > max_wait_time):
             break
         # raw_job type serialized string or byte or none
-        raw_job = redis_client.lpop(queue_name)
+        try:
+            raw_job = redis_circuit_breaker.call(
+                lambda: redis_client.lpop(queue_name),
+                operation_name="redis_lpop"
+            )
+        except Exception as e:
+            print(f"Redis unavailable during lpop: {e}")
+            return []
 
         if raw_job is None:
             # If queue is empty and we have nothing, exit immediately to avoid blocking
@@ -46,22 +66,24 @@ def fetch_batch(queue_name: str, max_batch_size: int, max_wait_time: float) -> L
 
             created_at =job_data.get("created_at")
             if created_at is None:
-                print(f"Job missing created_at, discarded:{job_data}")
+                move_to_dlq(raw_job, "missing_created_at")
+                continue
 
             job_age = time.time() - created_at
             if  job_age > JOB_TTL_SECONDS:
-                print(f"Expired job {job_data['job_id']} discarded from {queue_name}")
+                move_to_dlq(raw_job, "job_expired")
                 continue
 
             retry_count = job_data.get("retry_count", 0)
             if retry_count >= MAX_JOB_RETRIES:
-                move_to_dlp(raw_job, "max_retries_exceeded")
+                move_to_dlq(raw_job, "max_retries_exceeded")
                 continue
 
 
             batch.append(job_data)
 
         except (json.JSONDecodeError, TypeError) as e:
+            move_to_dlq(raw_job, f"invalid_job_payload:{e}")
             print(f"Failed to parse job from {queue_name}: {e}")
             continue
 
@@ -73,10 +95,17 @@ def process_batch(queue_name: str, tier: str, max_batch_size: int, max_wait_time
     Returns True if work was processed, False if queue was empty.
     """
     batch = fetch_batch(queue_name, max_batch_size, max_wait_time)
+    try:
+        # Update queue depth metric
+        queue_depth = redis_circuit_breaker.call(
+            lambda : redis_client.llen(queue_name),
+            operation_name="redis_llen"
+        )
+        QUEUE_DEPTH.labels(worker_role=worker_role, tier=tier).set(queue_depth)
+    except Exception as e:
+        print(f"redis unavailable during llen: {e}")
+        return False
 
-    # Update queue depth metric
-    queue_depth = redis_client.llen(queue_name)
-    QUEUE_DEPTH.labels(worker_role=worker_role, tier=tier).set(queue_depth)
 
     if not batch:
         return False
@@ -102,21 +131,33 @@ def process_batch(queue_name: str, tier: str, max_batch_size: int, max_wait_time
         for job in batch:
             job["retry_count"] = job.get("retry_count", 0) + 1
             if job["retry_count"] >= MAX_JOB_RETRIES:
-                move_to_dlp(json.dumps(job), f"batch_inference_failed:{e}")
+                move_to_dlq(json.dumps(job), f"batch_inference_failed:{e}")
             else:
-                redis_client.rpush(queue_name, json.dumps(job))
+                try:
+                    redis_circuit_breaker.call(
+                        lambda: redis_client.rpush(queue_name, json.dumps(job)),
+                        operation_name="redis_requeue"
+                    )
+                except Exception as requeue_error:
+                    print(
+                        f"Failed to requeue job "
+                        f"{job.get('job_id')}: {requeue_error}"
+                    )
+                    return False
         return False
 
     # Save results back to Redis
     for job, result in zip(batch, results):
-
-        redis_client.set(
-            f"job_result:{job['job_id']}",
-            json.dumps(result)
-        )
-        PROCESSED_REQUESTS.labels(result.tier).inc()
-        print(f"Processed job {job['job_id']}")
-
+        try:
+            redis_circuit_breaker.call(
+                lambda: redis_client.set(f"job_result:{job['job_id']}", json.dumps(result)),
+                operation_name="redis_set_result"
+            )
+            PROCESSED_REQUESTS.labels(result.tier).inc()
+            print(f"Processed job {job['job_id']}")
+        except Exception as e:
+            print(f"redis unavailable during set_result: {e}")
+            return False
     return True
 
 
