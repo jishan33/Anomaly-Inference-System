@@ -101,7 +101,7 @@ class CircuitBreaker:
                 extra={"extra_data": {"operation": operation_name, "request_id": request_id}}
             )
         self.failure_count = 0
-        self.state = "CLOSED"
+        self.state = CircuitBreakerState.CLOSED
 
     def _on_failure(self, operation_name: str, error: Exception, request_id: str = "unknown"):
         self.failure_count += 1

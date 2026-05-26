@@ -7,7 +7,10 @@ redis_client = redis.Redis(
     host="redis",
     port=6379,
     decode_responses=True,
-    socket_connect_timeout=1,  # connection timeout
+    socket_connect_timeout=0.2,  # connection timeout
+    socket_timeout=0.2,
+    retry_on_timeout=False,
+    health_check_interval=0,
 )
 
 redis_circuit_breaker = CircuitBreaker(

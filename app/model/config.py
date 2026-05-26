@@ -1,19 +1,24 @@
 from enum import Enum
-from typing import List, NamedTuple, Tuple
+from typing import List, NamedTuple, Tuple, TypedDict
+
 
 # -------------------------------------------------------------------------
 # Batch Configurations & Thresholds
 # -------------------------------------------------------------------------
 # 1. define a clear schema for what the configuration represents
-max_batch_size: int
-max_wait_time: float
+class BatchConfig(NamedTuple):
+    max_batch_size: int
+    max_wait_time: float
+
+# 2. decouple the thresholds from the logic.
+# Ordered from the highest threshold to lowest for easy fallback logic.
 BATCH_THRESHOLDS: List[Tuple[int, BatchConfig]] = [
     (50, BatchConfig(16, 0.05)),
     (10, BatchConfig(8, 0.02)),
     (0, BatchConfig(2, 0.005))
 ]
 
-# 2. decouple the thresholds from the logic.
+# Decreasing ration adjustments during VIP queue surges
 RATIO_THRESHOLDS: List[Tuple[int, float]] = [
     (130, 0.0),
     (100, 0.3),
@@ -21,13 +26,8 @@ RATIO_THRESHOLDS: List[Tuple[int, float]] = [
     (0, 1.0)
 ]
 
-# Decreasing ration adjustments during VIP queue surges
-# Ordered from the highest threshold to lowest for easy fallback logic.
-class BatchConfig(NamedTuple):
-    pass
-#-------------------
-# Autoscaling
-#-------------------
+
+
 MIN_SHARED_WORKERS = 1
 MAX_SHARED_WORKERS = 4
 
@@ -47,6 +47,14 @@ VIP_QUEUE = "vip_jobs"
 JOB_TTL_SECONDS = 30
 MAX_JOB_RETRIES = 3
 DEAD_LETTER_QUEUE = "dead_letter_queue"
+
+RawJob = bytes | str
+OptionalRawJob = RawJob | None
+
+class DlqPayload(TypedDict):
+    raw_job: RawJob
+    reason: str
+    created_at: float
 
 class Tier(Enum):
     VIP = 1
