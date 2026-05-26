@@ -1,21 +1,22 @@
 import json
 import time
-from typing import List
+from typing import List, TypedDict
 
 from app.api.temp_transaction_store import redis_client
-from app.model.config import JOB_TTL_SECONDS, DEAD_LETTER_QUEUE, MAX_JOB_RETRIES
+from app.model.config import JOB_TTL_SECONDS, DEAD_LETTER_QUEUE, MAX_JOB_RETRIES, RawJob, OptionalRawJob, DlqPayload
 from app.model.inference import run_inference
 from app.model.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS
+from app.model.queue_service import QueueJob
+from app.model.validate import validate_queue_job
 from app.shared.redis import redis_circuit_breaker
 
-RowJob = bytes | str
 
-def move_to_dlq(raw_job: object, reason: str) -> bool:
-    dlq_payload = {
-        "raw_job": raw_job.decode() if isinstance(raw_job, bytes) else raw_job,
-        "reason": reason,
-        "failed_at": time.time(),
-    }
+def move_to_dlq(raw_job: RawJob, reason: str) -> bool:
+    dlq_payload = DlqPayload(
+        raw_job= raw_job.decode() if isinstance(raw_job, bytes) else raw_job,
+        reason= reason,
+        created_at= time.time()
+    )
     try:
         redis_circuit_breaker.call(
             lambda : redis_client.rpush(DEAD_LETTER_QUEUE, json.dumps(dlq_payload)),
@@ -30,12 +31,12 @@ def move_to_dlq(raw_job: object, reason: str) -> bool:
         )
         return False
 
-def fetch_batch(queue_name: str, max_batch_size: int, max_wait_time: float) -> List[dict]:
+def fetch_batch(queue_name: str, max_batch_size: int, max_wait_time: float) -> List[QueueJob]:
     """
     Safely fetches a batch of jobs from the specified Redis queue.
     Returns a list of parsed JSON dictionaries.
     """
-    batch = []
+    batch: List[QueueJob] = []
     start_time = time.time()
 
     while len(batch) < max_batch_size:
@@ -44,7 +45,7 @@ def fetch_batch(queue_name: str, max_batch_size: int, max_wait_time: float) -> L
             break
         # raw_job type serialized string or byte or none
         try:
-            raw_job = redis_circuit_breaker.call(
+            raw_job: OptionalRawJob = redis_circuit_breaker.call(
                 lambda: redis_client.lpop(queue_name),
                 operation_name="redis_lpop"
             )
@@ -60,27 +61,26 @@ def fetch_batch(queue_name: str, max_batch_size: int, max_wait_time: float) -> L
             break
 
         try:
-            # job_data type is a dictionary
-            job_data = json.loads(raw_job)
+            validated_job: QueueJob = validate_queue_job(raw_job)
 
 
-            created_at =job_data.get("created_at")
+            created_at: float =validated_job["created_at"]
             if created_at is None:
                 move_to_dlq(raw_job, "missing_created_at")
                 continue
 
-            job_age = time.time() - created_at
+            job_age: float = time.time() - created_at
             if  job_age > JOB_TTL_SECONDS:
                 move_to_dlq(raw_job, "job_expired")
                 continue
 
-            retry_count = job_data.get("retry_count", 0)
+            retry_count: int = validated_job["retry_count"]
             if retry_count >= MAX_JOB_RETRIES:
                 move_to_dlq(raw_job, "max_retries_exceeded")
                 continue
 
 
-            batch.append(job_data)
+            batch.append(validated_job)
 
         except (json.JSONDecodeError, TypeError) as e:
             move_to_dlq(raw_job, f"invalid_job_payload:{e}")
@@ -143,7 +143,7 @@ def process_batch(queue_name: str, tier: str, max_batch_size: int, max_wait_time
                         f"Failed to requeue job "
                         f"{job.get('job_id')}: {requeue_error}"
                     )
-                    return False
+                    continue
         return False
 
     # Save results back to Redis
