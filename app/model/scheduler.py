@@ -1,7 +1,7 @@
 from typing import NamedTuple
 
 from app.model.config import BatchConfig, BATCH_THRESHOLDS, RATIO_THRESHOLDS
-from app.model.queue_service import FREE_QUEUE, VIP_QUEUE
+from app.model.config import FREE_QUEUE, VIP_QUEUE
 from app.model.metrics import  CURRENT_BATCH_SIZE, CURRENT_BATCH_TIMEOUT
 from app.api.temp_transaction_store import redis_client
 
