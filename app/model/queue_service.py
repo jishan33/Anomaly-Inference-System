@@ -13,8 +13,9 @@ def enqueue_job(redis_client, transaction: dict):
     job = {
         "job_id": job_id,
         "transaction": transaction,
-        "enqueued_at": time.time(),
-        "tier": tier
+        "created_at": time.time(),
+        "tier": tier,
+        "retry_count": 0
     }
 
     if tier == "vip":
