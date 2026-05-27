@@ -7,7 +7,7 @@ from typing import TypedDict, Any
 
 from app.model.config import VIP_QUEUE, FREE_QUEUE
 from app.model.metrics import QUEUE_INGRESS_TOTAL
-from app.shared.redis import redis_circuit_breaker, redis_client as imported_redis_client
+from app.shared.redis import redis_circuit_breaker, redis_client
 
 logger = logging.getLogger("queue_service")
 
@@ -19,7 +19,7 @@ class QueueJob(TypedDict):
     tier: str
     retry_count: int
 
-def enqueue_job(redis_client, transaction: dict[str, Any]) -> str:
+def enqueue_job(transaction: dict[str, Any]) -> str:
     job_id = str(uuid.uuid4())
     tier = transaction.get("tier", "free")
 
@@ -52,7 +52,7 @@ def enqueue_job(redis_client, transaction: dict[str, Any]) -> str:
 def get_queue_depth(queue_name: str) -> int|None:
     try:
         queue_depth = redis_circuit_breaker.call(
-            lambda: imported_redis_client.llen(queue_name),
+            lambda: redis_client.llen(queue_name),
             operation_name=f"redis_llen_{queue_name}"
         )
         return queue_depth
