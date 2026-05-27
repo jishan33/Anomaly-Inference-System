@@ -21,23 +21,25 @@ class Autoscaler:
         self.active_shared_workers = MIN_SHARED_WORKERS
         self.active_vip_workers = MIN_VIP_WORKERS
         self.last_scale_time = time.time()
+        self.set_workers_to_redis(worker_role="active_vip_workers")
+        self.set_workers_to_redis(worker_role="active_shared_workers")
+
+    def set_workers_to_redis(self, worker_role: str):
         try:
-            redis_circuit_breaker.call(
-                lambda: redis_client.set(
-                    "active_vip_workers",
-                    self.active_vip_workers),
-                operation_name="redis_set"
+            number_of_workers = (
+                self.active_vip_workers if worker_role == "active_vip_workers"
+                else self.active_shared_workers
             )
 
             redis_circuit_breaker.call(
                 lambda: redis_client.set(
-                    "active_shared_workers",
-                    self.active_shared_workers
+                    worker_role,
+                    number_of_workers
                 ),
                 operation_name="redis_set"
             )
         except Exception as e:
-           print(f"redis is unavailable for set operation: {e}")
+            print(f"redis is unavailable for set operation: {e}")
 
     def scale_shared_worker(self, target: int):
         target = max(MIN_SHARED_WORKERS, min(MAX_SHARED_WORKERS, target))
@@ -49,11 +51,7 @@ class Autoscaler:
 
             self.active_shared_workers = target
             self.last_scale_time = time.time()
-
-            redis_client.set(
-                "active_shared_workers",
-                self.active_shared_workers
-            )
+            self.set_workers_to_redis(worker_role="active_shared_workers")
 
             ACTIVE_SHARED_WORKERS.set(self.active_shared_workers)
 
@@ -79,11 +77,7 @@ class Autoscaler:
 
             self.active_vip_workers = target
             self.last_scale_time = time.time()
-
-            redis_client.set(
-                "active_vip_workers",
-                self.active_vip_workers
-            )
+            self.set_workers_to_redis(worker_role="active_vip_workers")
 
             ACTIVE_VIP_WORKERS.set(
                 self.active_vip_workers
@@ -105,6 +99,7 @@ class Autoscaler:
 
                 free_depth: int|None = get_queue_depth(FREE_QUEUE)
                 vip_depth: int|None = get_queue_depth(VIP_QUEUE)
+
                 if free_depth is not None and vip_depth is not None:
                     # Free scaling logic
                     if free_depth > SCALE_UP_QUEUE_DEPTH and self.active_shared_workers < MAX_SHARED_WORKERS:
