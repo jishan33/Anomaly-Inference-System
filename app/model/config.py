@@ -51,11 +51,6 @@ DEAD_LETTER_QUEUE = "dead_letter_queue"
 RawJob = bytes | str
 OptionalRawJob = RawJob | None
 
-class DlqPayload(TypedDict):
-    raw_job: RawJob
-    reason: str
-    created_at: float
-
 class Tier(Enum):
     VIP = 1
     FREE = 2

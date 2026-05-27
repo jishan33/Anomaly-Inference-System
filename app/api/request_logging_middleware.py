@@ -5,7 +5,7 @@ from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.config import INSTANCE_ID
-from app.api.metrics import REQUEST_COUNT, REQUEST_LATENCY, ERROR_COUNT
+from app.shared.metrics import REQUEST_COUNT, REQUEST_LATENCY, ERROR_COUNT
 
 logger = logging.getLogger("request_logging_middleware")
 
