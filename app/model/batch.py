@@ -5,7 +5,8 @@ from typing import List
 from app.api.temp_transaction_store import redis_client
 from app.model.config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob
 from app.model.inference import run_inference
-from app.shared.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS
+from app.shared.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS, \
+    REDIS_OPERATION_FAILURES_TOTAL
 from app.model.queue_service import QueueJob, get_queue_depth, move_to_dlq
 from app.model.validate import validate_queue_job
 from app.shared.redis import redis_circuit_breaker
@@ -29,6 +30,7 @@ def fetch_batch(queue_name: str, max_batch_size: int, max_wait_time: float) -> L
                 operation_name="redis_lpop"
             )
         except Exception as e:
+            REDIS_OPERATION_FAILURES_TOTAL.labels(operation="redis_lpop").inc()
             print(f"Redis unavailable during lpop: {e}")
             return []
 
@@ -56,8 +58,8 @@ def fetch_batch(queue_name: str, max_batch_size: int, max_wait_time: float) -> L
 
             batch.append(validated_job)
 
-        except (json.JSONDecodeError, TypeError) as e:
-            move_to_dlq(raw_job, f"invalid_job_payload:{e}")
+        except (json.JSONDecodeError, TypeError, ValueError) as e:
+            move_to_dlq(raw_job, "invalid_job_payload")
             print(f"Failed to parse job from {queue_name}: {e}")
             continue
 
@@ -102,7 +104,8 @@ def process_batch(queue_name: str, tier: str, max_batch_size: int, max_wait_time
         for job in batch:
             job["retry_count"] = job.get("retry_count", 0) + 1
             if job["retry_count"] >= MAX_JOB_RETRIES:
-                move_to_dlq(json.dumps(job), f"batch_inference_failed:{e}")
+                move_to_dlq(json.dumps(job), "batch_inference_failed")
+                print(f"batch_inference_failed: {e}")
             else:
                 try:
                     redis_circuit_breaker.call(
@@ -110,6 +113,7 @@ def process_batch(queue_name: str, tier: str, max_batch_size: int, max_wait_time
                         operation_name="redis_requeue"
                     )
                 except Exception as requeue_error:
+                    REDIS_OPERATION_FAILURES_TOTAL.labels(operation="redis_requeue").inc()
                     print(
                         f"Failed to requeue job "
                         f"{job.get('job_id')}: {requeue_error}"
@@ -127,6 +131,7 @@ def process_batch(queue_name: str, tier: str, max_batch_size: int, max_wait_time
             PROCESSED_REQUESTS.labels(result.tier).inc()
             print(f"Processed job {job['job_id']}")
         except Exception as e:
+            REDIS_OPERATION_FAILURES_TOTAL.labels(operation="redis_set_result").inc()
             print(f"redis unavailable during set_result: {e}")
             return False
     return True

@@ -146,3 +146,32 @@ SCALING_EVENTS_TOTAL = Counter(
     ["tier", "direction"]
 )
 
+#---------------------------------
+# Reliability
+#---------------------------------
+
+DEAD_LETTER_QUEUE_JOBS_TOTAL =  Counter(
+    "dlq_jobs_total",
+    "Total number of dead letter queue jobs",
+    ["reason"]
+)
+
+DEAD_LETTER_QUEUE_PUSH_ATTEMPTS_TOTAL =  Counter(
+    "dlq_push_attempt_total",
+    "Total number of dead letter queue push attempts",
+    ["reason"]
+)
+
+DLQ_PUSH_FAILURE_TOTAL = Counter(
+    "dlq_push_failure_total",
+    "Total number of failed DLQ push attempts",
+    ["reason"]
+)
+
+REDIS_OPERATION_FAILURES_TOTAL = Counter(
+    "redis_operation_failures_total",
+    "Total Redis operation failures",
+    ["operation"]
+)
+
+
