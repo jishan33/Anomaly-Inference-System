@@ -7,7 +7,7 @@ from typing import TypedDict, Any
 
 from app.model.config import VIP_QUEUE, FREE_QUEUE, RawJob, DEAD_LETTER_QUEUE
 from app.shared.metrics import QUEUE_INGRESS_TOTAL, DEAD_LETTER_QUEUE_JOBS_TOTAL, DEAD_LETTER_QUEUE_PUSH_ATTEMPTS_TOTAL, \
-    DLQ_PUSH_FAILURE_TOTAL
+    DLQ_PUSH_FAILURE_TOTAL, REDIS_OPERATION_FAILURES_TOTAL
 from app.shared.redis import redis_circuit_breaker, redis_client
 
 logger = logging.getLogger("queue_service")
@@ -50,6 +50,7 @@ def enqueue_job(transaction: dict[str, Any]) -> str:
         return job_id
 
     except Exception as e:
+        REDIS_OPERATION_FAILURES_TOTAL.labels(operation=f"redis_enqueue_{tier}").inc()
         logger.error(f'redis unavailable during enqueue {tier}: {e}')
         raise
 
@@ -63,6 +64,7 @@ def get_queue_depth(queue_name: str) -> int|None:
         )
         return queue_depth
     except Exception as e:
+        REDIS_OPERATION_FAILURES_TOTAL.labels(operation=f"redis_llen_{queue_name}").inc()
         logger.error(f"redis is unavailable for llen operation: {e}")
         return None
 
@@ -85,6 +87,8 @@ def move_to_dlq(raw_job: RawJob, reason: str) -> bool:
         return True
     except Exception as e:
         DLQ_PUSH_FAILURE_TOTAL.labels(reason=reason).inc()
+        REDIS_OPERATION_FAILURES_TOTAL.labels(operation="redis_dlq_push").inc()
+
         print(
             f"CRITICAL: failed to move job to DLQ. "
             f"reason={reason}, error={e}, raw_job={raw_job}"

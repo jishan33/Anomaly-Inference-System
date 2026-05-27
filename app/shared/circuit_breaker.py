@@ -2,13 +2,23 @@ import logging
 import time
 
 from app.api.config import INSTANCE_ID
-from app.api.metrics import CIRCUIT_BREAKER_STATE
+from app.shared.metrics import CIRCUIT_BREAKER_STATE
 from enum import Enum
-from typing import Callable
+from typing import Callable, TypeVar
 
 logger = logging.getLogger("circuit_breaker")
 
 
+T = TypeVar("T")
+
+class CircuitBreakerError(Exception):
+    pass
+
+class CircuitBreakerOpenError(CircuitBreakerError):
+    pass
+
+class CircuitBreakerExecutionError(CircuitBreakerError):
+    pass
 # ------------------------
 # CLOSED → normal
 # OPEN → block calls
@@ -57,7 +67,7 @@ class CircuitBreaker:
         self.last_failure_time = None
         self.state = CircuitBreakerState.CLOSED  # CLOSED | OPEN | HALF_OPEN
 
-    def call(self, func: Callable, operation_name: str = "unknown", request_id: str = "unknown"):
+    def call(self, func: Callable[[], T], operation_name: str = "unknown", request_id: str = "unknown") -> T:
         """
         Wrap external calls (e.g. Redis)
         """
@@ -75,19 +85,24 @@ class CircuitBreaker:
                     "circuit_open_block",
                     extra={"extra_data": {"operation": operation_name, "request_id": request_id}}
                 )
-                raise Exception("Circuit is OPEN")
+                raise CircuitBreakerOpenError("Circuit breaker is OPEN")
 
         # Step 2: Try the function
         try:
             result = func()
-
             # Step 3: Success -> reset
             self._on_success(operation_name, request_id)
             return result
+
+        except CircuitBreakerError:
+             raise
+
         except Exception as e:
             # Step 4: Failure -> track
             self._on_failure(operation_name, e, request_id)
-            raise
+            raise CircuitBreakerExecutionError(
+                f"Circuit breaker protected call failed: {operation_name}"
+            ) from e
 
     # ------------------------
     # Internal helpers
@@ -127,7 +142,7 @@ class CircuitBreaker:
                 extra={"extra_data": {"operation": operation_name, "request_id": request_id}}
             )
 
-    def _can_attempt_recovery(self):
+    def _can_attempt_recovery(self) -> bool:
         if self.last_failure_time is None:
             logger.error("circuit_invalid_state")
             return False
