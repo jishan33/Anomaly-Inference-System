@@ -5,7 +5,7 @@ from pydantic import BaseModel
 import logging
 
 from app.api.config import INSTANCE_ID
-from app.api.metrics import VOLUME_GAUGE
+from app.shared.metrics import VOLUME_GAUGE
 from app.api.retry import retry_with_backoff
 from app.shared.redis import redis_client, redis_circuit_breaker
 

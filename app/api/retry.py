@@ -4,7 +4,7 @@ import logging
 from typing import Callable
 
 from app.api.config import INSTANCE_ID
-from app.api.metrics import RETRY_COUNT
+from app.shared.metrics import RETRY_COUNT
 
 logger = logging.getLogger("retry")
 

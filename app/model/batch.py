@@ -1,35 +1,14 @@
 import json
 import time
-from typing import List, TypedDict
+from typing import List
 
 from app.api.temp_transaction_store import redis_client
-from app.model.config import JOB_TTL_SECONDS, DEAD_LETTER_QUEUE, MAX_JOB_RETRIES, RawJob, OptionalRawJob, DlqPayload
+from app.model.config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob
 from app.model.inference import run_inference
-from app.model.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS
-from app.model.queue_service import QueueJob, get_queue_depth
+from app.shared.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS
+from app.model.queue_service import QueueJob, get_queue_depth, move_to_dlq
 from app.model.validate import validate_queue_job
 from app.shared.redis import redis_circuit_breaker
-
-
-def move_to_dlq(raw_job: RawJob, reason: str) -> bool:
-    dlq_payload = DlqPayload(
-        raw_job= raw_job.decode() if isinstance(raw_job, bytes) else raw_job,
-        reason= reason,
-        created_at= time.time()
-    )
-    try:
-        redis_circuit_breaker.call(
-            lambda : redis_client.rpush(DEAD_LETTER_QUEUE, json.dumps(dlq_payload)),
-            operation_name= "redis_dlq_push"
-        )
-        print(f"Moved job to DLQ. reason={reason}")
-        return True
-    except Exception as e:
-        print(
-            f"CRITICAL: failed to move job to DLQ. "
-            f"reason={reason}, error={e}, raw_job={raw_job}"
-        )
-        return False
 
 def fetch_batch(queue_name: str, max_batch_size: int, max_wait_time: float) -> List[QueueJob]:
     """
@@ -63,12 +42,7 @@ def fetch_batch(queue_name: str, max_batch_size: int, max_wait_time: float) -> L
         try:
             validated_job: QueueJob = validate_queue_job(raw_job)
 
-
             created_at: float =validated_job["created_at"]
-            if created_at is None:
-                move_to_dlq(raw_job, "missing_created_at")
-                continue
-
             job_age: float = time.time() - created_at
             if  job_age > JOB_TTL_SECONDS:
                 move_to_dlq(raw_job, "job_expired")

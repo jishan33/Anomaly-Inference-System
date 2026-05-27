@@ -1,12 +1,9 @@
-from typing import NamedTuple, List, Tuple
+from typing import NamedTuple, Tuple
 
-from app.model.batch import fetch_batch
 from app.model.config import BatchConfig, BATCH_THRESHOLDS, RATIO_THRESHOLDS
 from app.model.config import FREE_QUEUE, VIP_QUEUE
-from app.model.metrics import  CURRENT_BATCH_SIZE, CURRENT_BATCH_TIMEOUT
-from app.api.temp_transaction_store import redis_client
+from app.shared.metrics import  CURRENT_BATCH_SIZE, CURRENT_BATCH_TIMEOUT
 from app.model.queue_service import get_queue_depth
-from app.shared.redis import redis_circuit_breaker
 
 
 class BatchScheduler(NamedTuple):

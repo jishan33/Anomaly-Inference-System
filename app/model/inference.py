@@ -2,7 +2,7 @@
 import time
 from .features import extract_features
 from .model import model_instance, PredictionResult
-from app.model.metrics import MODEL_LATENCY, MODEL_PREDICTIONS
+from app.shared.metrics import MODEL_LATENCY, MODEL_PREDICTIONS
 
 
 def run_inference(transactions:list[dict]) -> list[PredictionResult]:
@@ -16,5 +16,4 @@ def run_inference(transactions:list[dict]) -> list[PredictionResult]:
         MODEL_LATENCY.observe(time.time()-request_start)
         MODEL_PREDICTIONS.labels(result="anomaly" if result.is_anomaly else "normal").inc()
         results.append(result)
-
     return results

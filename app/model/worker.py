@@ -5,7 +5,7 @@ from prometheus_client import start_http_server
 
 from app.api.temp_transaction_store import redis_client
 from app.model.batch import process_batch
-from app.model.metrics import WORKER_ACTIVE_STATE
+from app.shared.metrics import WORKER_ACTIVE_STATE
 from app.model.model import model_instance
 from app.model.config import FREE_QUEUE, VIP_QUEUE
 from app.model.queue_service import get_queue_depth
