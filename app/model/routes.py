@@ -17,7 +17,6 @@ router = APIRouter()
 async def predict_async(req: PredictRequest):
     try:
         job_id = enqueue_job(
-            redis_client=redis_client,
             transaction=req.model_dump(),
         )
     except Exception:
