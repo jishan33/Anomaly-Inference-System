@@ -1,6 +1,8 @@
-from app.model.autoscaler import Autoscaler
+import logging
 
+from app.model.autoscaler import Autoscaler
+logging.getLogger("auto_scaler")
 
 autoscaler = Autoscaler()
-print("run_autoscaler.py started")
+logging.info("run_autoscaler.py started")
 autoscaler.autoscaler_loop()

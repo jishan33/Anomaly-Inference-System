@@ -9,8 +9,7 @@ from app.shared.metrics import VOLUME_GAUGE
 from app.api.retry import retry_with_backoff
 from app.shared.redis import redis_client, redis_circuit_breaker
 
-logger = logging.getLogger("temp_transaction_store")
-
+logger = logging.getLogger(__name__)
 KEY = "transactions"
 WINDOW_SECONDS = 60
 

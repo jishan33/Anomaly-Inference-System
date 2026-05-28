@@ -6,8 +6,7 @@ from typing import Callable
 from app.api.config import INSTANCE_ID
 from app.shared.metrics import RETRY_COUNT
 
-logger = logging.getLogger("retry")
-
+logger = logging.getLogger(__name__)
 
 def retry_with_backoff(
         func: Callable,

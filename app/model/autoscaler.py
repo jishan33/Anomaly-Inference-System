@@ -1,3 +1,4 @@
+import logging
 import time
 
 from prometheus_client import start_http_server
@@ -10,6 +11,8 @@ from app.shared.metrics import SCALING_EVENTS_TOTAL, ACTIVE_SHARED_WORKERS, ACTI
 from app.model.config import FREE_QUEUE, VIP_QUEUE
 from app.model.queue_service import get_queue_depth
 from app.shared.redis import redis_circuit_breaker
+
+logger = logging.getLogger(__name__)
 
 start_http_server(9005)
 
@@ -46,7 +49,7 @@ class Autoscaler:
 
         except Exception as e:
             REDIS_OPERATION_FAILURES_TOTAL.labels(operation="redis_set").inc()
-            print(f"Redis is unavailable for set operation: {e}")
+            logger.error(f"Redis is unavailable for set operation: {e}")
 
     def scale_shared_worker(self, target: int):
         target = max(MIN_SHARED_WORKERS, min(MAX_SHARED_WORKERS, target))
@@ -62,7 +65,7 @@ class Autoscaler:
 
             ACTIVE_SHARED_WORKERS.set(self.active_shared_workers)
 
-            print(f"[AUTOSCALER] "
+            logger.info(f"[AUTOSCALER] "
                   f"shared workers -> "
                   f"{self.active_shared_workers}"
                   )
@@ -90,14 +93,14 @@ class Autoscaler:
                 self.active_vip_workers
             )
 
-            print(
+            logger.info(
                 f"[AUTOSCALER] "
                 f"vip workers -> "
                 f"{self.active_vip_workers}"
             )
 
     def autoscaler_loop(self):
-        print("[AUTOSCALER] loop running")
+        logger.info("[AUTOSCALER] loop running")
         while True:
             try:
                 now = time.time()
@@ -121,8 +124,8 @@ class Autoscaler:
                         self.scale_vip_workers(self.active_vip_workers - 1)
 
                 else:
-                    print("[AUTOSCALER] Unable to fetch queue depths. Skipping scaling this cycle.")
+                    logger.error("[AUTOSCALER] Unable to fetch queue depths. Skipping scaling this cycle.")
             except Exception as e:
-                print(f"[AUTOSCALER] Unexpected error in loop: {e}")
+                logger.error(f"[AUTOSCALER] Unexpected error in loop: {e}")
             finally:
                 time.sleep(POLL_INTERVAL_SECONDS)
