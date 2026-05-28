@@ -7,8 +7,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.api.config import INSTANCE_ID
 from app.shared.metrics import REQUEST_COUNT, REQUEST_LATENCY, ERROR_COUNT
 
-logger = logging.getLogger("request_logging_middleware")
-
+logger = logging.getLogger(__name__)
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):

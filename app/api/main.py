@@ -28,7 +28,7 @@ app = FastAPI(
 setup_logging()
 
 # Logging should be configured exactly once, at app startup!!!
-logger = logging.getLogger("main")
+logger = logging.getLogger(__name__)
 config = Config()
 app.include_router(router)
 

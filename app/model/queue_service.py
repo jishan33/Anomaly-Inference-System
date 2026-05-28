@@ -10,8 +10,7 @@ from app.shared.metrics import QUEUE_INGRESS_TOTAL, DEAD_LETTER_QUEUE_JOBS_TOTAL
     DLQ_PUSH_FAILURE_TOTAL, REDIS_OPERATION_FAILURES_TOTAL
 from app.shared.redis import redis_circuit_breaker, redis_client
 
-logger = logging.getLogger("queue_service")
-
+logger = logging.getLogger(__name__)
 
 class QueueJob(TypedDict):
     job_id: str
@@ -83,13 +82,13 @@ def move_to_dlq(raw_job: RawJob, reason: str) -> bool:
         )
 
         DEAD_LETTER_QUEUE_JOBS_TOTAL.labels(reason=reason).inc()
-        print(f"Moved job to DLQ. reason={reason}")
+        logger.info(f"Moved job to DLQ. reason={reason}")
         return True
     except Exception as e:
         DLQ_PUSH_FAILURE_TOTAL.labels(reason=reason).inc()
         REDIS_OPERATION_FAILURES_TOTAL.labels(operation="redis_dlq_push").inc()
 
-        print(
+        logger.error(
             f"CRITICAL: failed to move job to DLQ. "
             f"reason={reason}, error={e}, raw_job={raw_job}"
         )

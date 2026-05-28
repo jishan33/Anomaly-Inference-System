@@ -6,8 +6,7 @@ from app.shared.metrics import CIRCUIT_BREAKER_STATE
 from enum import Enum
 from typing import Callable, TypeVar
 
-logger = logging.getLogger("circuit_breaker")
-
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 

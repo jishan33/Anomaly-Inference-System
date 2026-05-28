@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 from typing import NamedTuple
@@ -12,14 +13,13 @@ from app.model.queue_service import get_queue_depth
 from app.model.scheduler import get_batch_scheduler
 from app.shared.redis import redis_circuit_breaker
 
-print("worker.py loaded")
+logger = logging.getLogger("worker")
+logger.info("worker.py loaded")
 
 WORKER_ROLE = os.getenv("WORKER_ROLE", "unknown")
 WORKER_ID = os.getenv("WORKER_ID", "1")
 
 start_http_server(9001)
-
-print("metrics server started")
 
 model_instance.load()
 
@@ -42,13 +42,13 @@ def get_active_workers()-> WorkerCounts|None:
         )
     except Exception as e:
         REDIS_OPERATION_FAILURES_TOTAL.labels(operation="redis_mget").inc()
-        print(f"redis is unavailable for mget operation: {e}")
+        logger.error(f"redis is unavailable for mget operation: {e}")
 
 
 
 
 def worker_loop():
-    print("Worker loop started...")
+    logger.info("Worker loop started...")
     while True:
         schedular =  get_batch_scheduler()
         active_counts: WorkerCounts|None = get_active_workers()
