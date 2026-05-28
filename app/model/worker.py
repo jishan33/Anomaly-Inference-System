@@ -92,7 +92,13 @@ def worker_loop():
         # ---------------------------------------------------------------------
         if not vip_processed and not free_processed:
             time.sleep(0.1)
-
-
+#-----------------------------------------------------------------------------------------------
+# python3 -m app.model.worker
+# Let's look at what Python does behind the scenes when you press enter:
+# Locates the file: Python looks through your directories and finds app/model/worker.py.
+# Assigns the Crown: Because of that -m flag,
+# Python treats this file as the absolute boss of the current execution.
+# It sets:  __name__==__main__
+#------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
     worker_loop()
