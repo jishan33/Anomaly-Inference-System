@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: anomaly-inference-system
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: anomaly-inference-system
+
+  template:
+    metadata:
+      labels:
+        app: anomaly-inference-system
+
+    spec:
+      containers:
+        - name: anomaly-inference-container
+          image: anomaly-inference-system:latest
+
+          imagePullPolicy: Never
+
+          ports:
+            - containerPort: 8000
