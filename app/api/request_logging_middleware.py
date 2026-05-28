@@ -23,7 +23,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             status_code = response.status_code
         except Exception as e:
             ERROR_COUNT.labels(
-                instance=INSTANCE_ID, type="http_error", status=status_code,
+                instance=INSTANCE_ID, type="http_error", status=str(status_code),
                 endpoint=request.url.path).inc()
             # Let global handler deal with it
             raise e
