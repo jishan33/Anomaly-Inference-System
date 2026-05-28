@@ -270,17 +270,122 @@ The project explores:
 
 ---
 
+# 🚀 Kubernetes Deployment
+
+The system now supports Kubernetes-based deployment for production-style orchestration and workload management.
+
+## Kubernetes Concepts Explored
+
+* Deployments
+* Replica orchestration
+* Kubernetes Services
+* EndpointSlice service discovery
+* Self-healing infrastructure
+* Declarative scaling
+* Pod lifecycle management
+
+---
+
+# 🚀 Kubernetes Architecture
+
+```text
+Client
+   │
+   ▼
+Kubernetes Service
+   │
+   ▼
+FastAPI Pod Replicas
+ ┌───────────────────────┐
+ │ anomaly-inference-pod │
+ │ anomaly-inference-pod │
+ │ anomaly-inference-pod │
+ └───────────────────────┘
+   │
+   ▼
+Redis Queue Layer
+```
+
+---
+
+# 🚀 Kubernetes Deployment Features
+
+The Kubernetes deployment supports:
+
+* multi-pod inference serving
+* service-level load balancing
+* automatic pod recovery
+* declarative replica scaling
+* EndpointSlice-based service discovery
+
+---
+
+# 🚀 Kubernetes Manifests
+
+| Manifest                 | Purpose            |
+| ------------------------ | ------------------ |
+| `k8s/app-deployment.yml` | FastAPI deployment |
+| `k8s/app-service.yml`    | Kubernetes Service |
+
+---
+
+# 🚀 Example Kubernetes Commands
+
+## Deploy Application
+
+```bash
+kubectl apply -f k8s/app-deployment.yml
+kubectl apply -f k8s/app-service.yml
+```
+
+## Verify Resources
+
+```bash
+kubectl get pods
+kubectl get deployments
+kubectl get services
+kubectl get endpointslices
+```
+
+## Scale Deployment
+
+```bash
+kubectl scale deployment anomaly-inference-system --replicas=5
+```
+
+## Test Self-Healing
+
+```bash
+kubectl delete pod <pod-name>
+```
+
+Kubernetes automatically recreates failed pods to maintain the desired replica count.
+
+---
+
+# 🚀 Kubernetes Learning Outcomes
+
+This phase explored:
+
+* distributed workload orchestration
+* control-plane reconciliation
+* service discovery
+* declarative infrastructure management
+* containerized deployment workflows
+* self-healing systems
+* production-style orchestration concepts
+
+
 # 🚀 Future Improvements
 
 Planned reliability engineering features:
 
-* dead-letter queues (DLQ)
-* retry handling
-* circuit breakers
-* graceful degradation
-* request shedding
-* Redis failure handling
-* autoscaler stabilization
+* [✅]  retry handling
+* [✅] circuit breakers
+* [✅] graceful degradation
+* [✅]  request shedding
+* [✅] Redis failure handling
+* [✅] autoscaler stabilization
 * distributed scaling
 
 ---
