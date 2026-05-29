@@ -2,7 +2,7 @@ import json
 
 from fastapi import APIRouter, HTTPException
 
-from app.api.transaction_store import redis_client
+from app.shared.redis import inference_redis_client
 from app.model.model import PredictRequest
 from app.model.queue_service import enqueue_job
 from app.shared.redis import redis_circuit_breaker
@@ -35,7 +35,7 @@ async def predict_async(req: PredictRequest):
 async def get_result(job_id:str):
     try:
         result = redis_circuit_breaker.call(
-            lambda: redis_client.get(f"job_result:{job_id}"),
+            lambda: inference_redis_client.get(f"job_result:{job_id}"),
             operation_name="redis_get_result",
         )
     except Exception:

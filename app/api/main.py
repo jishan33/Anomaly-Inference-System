@@ -13,22 +13,34 @@ from prometheus_client import generate_latest
 from app.api.anomaly_detect import anomaly_score, anomaly_volume_score, anomaly_customer_transaction_volume_score
 from app.model.model import model_instance
 from app.model.routes import router
-from app.api.config import INSTANCE_ID, Config, setup_logging
+from app.api.config import INSTANCE_ID, setup_logging
 from app.shared.metrics import ANOMALY_COUNT, USER_RATE_LIMIT, REQUEST_COUNT
 from app.api.request_logging_middleware import RequestLoggingMiddleware
 from app.api.transaction_store import Transaction, append_to_redis, safe_get_customer_transaction_volume, \
-    safe_get_volume, \
-    redis_client, redis_circuit_breaker, generate_random_transaction
+    safe_get_volume, redis_circuit_breaker, generate_random_transaction
 from app.api.validation import CustomerRequest
+from app.shared.redis import sync_redis_client
 
-app = FastAPI(
-    middleware=[Middleware(RequestLoggingMiddleware)],
-)
 # Logging should be configured exactly once, at app startup!!!
 setup_logging()
 logger = logging.getLogger(__name__)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Load the model and share it via app.state    model_instance.load()
+    yield {"model": model_instance}
+    # Clean up on shutdown if needed
+
+app = FastAPI(
+    middleware=[Middleware(RequestLoggingMiddleware)],
+    lifespan=lifespan
+)
+
 app.include_router(router)
+
+@app.get("/health")
+def health():
+    return {"status": "healthy"}
 
 @app.post("/predict_amount")
 def predict_amount(transaction: Transaction):
@@ -145,7 +157,7 @@ def debug_cb():
 @app.get("/healthz")
 def health():
     try:
-        redis_client.ping()
+        sync_redis_client.ping()
         return {"status": "okay", "instance": INSTANCE_ID}
     except Exception as e:
         logger.error(
@@ -226,13 +238,3 @@ def test_metrics():
         status="200"
     ).inc()
     return {"ok": True}
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Load the model and share it via app.state    model_instance.load()
-    yield {"model": model_instance}
-    # Clean up on shutdown if needed
-
-
-
-app = FastAPI(lifespan=lifespan)

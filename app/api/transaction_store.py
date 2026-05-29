@@ -8,9 +8,10 @@ from pydantic import BaseModel
 from typing import List
 
 from app.api.config import INSTANCE_ID
+from app.shared import redis
 from app.shared.metrics import VOLUME_GAUGE
 from app.api.retry import retry_with_backoff
-from app.shared.redis import redis_client, redis_circuit_breaker
+from app.shared.redis import sync_redis_client, redis_circuit_breaker
 
 logger = logging.getLogger(__name__)
 KEY = "transactions"
@@ -44,22 +45,22 @@ def append_to_redis(transactions: List[Transaction], request_id: str = "unknown"
             # unique key for this specific transaction's details
             data_key = f"txn:{txn.transaction_token}"
 
-            # store the full data as a Hash withe an automatic 60s expiration
-            redis_client.hset(data_key, mapping=txn.model_dump())
-            redis_client.expire(data_key, WINDOW_SECONDS)
+            # store the full data as a Hash with an automatic 60s expiration
+            sync_redis_client.hset(data_key, mapping=txn.model_dump())
+            sync_redis_client.expire(data_key, WINDOW_SECONDS)
 
-            # Global ZSET
+            # Global SET
             # add to the Global Sorted Set (The index for get_volume)
             # Member: transaction_token, Score: current timestamp
-            redis_client.zadd(KEY, {txn.transaction_token: now})
+            sync_redis_client.zadd(KEY, {txn.transaction_token: now})
 
-            # Per-customer ZSET (needed for rate-limiting)
+            # Per-customer SET (needed for rate-limiting)
             customer_index_key = f"customer_index:{txn.customer_token}"
-            redis_client.zadd(customer_index_key, {txn.transaction_token: now})
-            redis_client.zremrangebyscore(customer_index_key, 0, now - WINDOW_SECONDS)
+            sync_redis_client.zadd(customer_index_key, {txn.transaction_token: now})
+            sync_redis_client.zremrangebyscore(customer_index_key, 0, now - WINDOW_SECONDS)
 
         # clean up the sorted set index (Removes tokens older than 60s)
-        redis_client.zremrangebyscore(KEY, 0, now - WINDOW_SECONDS)
+        sync_redis_client.zremrangebyscore(KEY, 0, time.time() - WINDOW_SECONDS)
 
     try:
         redis_circuit_breaker.call(
@@ -85,7 +86,7 @@ def get_volume(request_id: str):
     now = time.time()
 
     def operation():
-        return redis_client.zcount(KEY, now - WINDOW_SECONDS, now)
+        return sync_redis_client.zcount(KEY, now - WINDOW_SECONDS, now)
 
     try:
         return redis_circuit_breaker.call(
@@ -112,7 +113,7 @@ def get_customer_transaction_volume(customer_token: str, request_id: str):
     now = time.time()
 
     def operation():
-        return redis_client.zcount(customer_index_key, now - WINDOW_SECONDS, now)
+        return sync_redis_client.zcount(customer_index_key, now - WINDOW_SECONDS, now)
 
     try:
         return redis_circuit_breaker.call(

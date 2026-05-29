@@ -1,13 +1,33 @@
 name: anomaly-inference-system
 services:
 
-  redis:
+  redis_sync:
     image: redis:7-alpine
-    container_name: redis
+    container_name: redis_sync
     ports:
-      - "6379:6379"
+      - "6380:6379"
+    restart: unless-stopped
     networks:
       - appnet
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  redis_inference:
+    image: redis:7-alpine
+    container_name: redis_inference
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - appnet
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   vip_worker1:
     build: .
@@ -18,7 +38,7 @@ services:
       - WORKER_ROLE=vip
       - WORKER_ID=1
     depends_on:
-      - redis
+      - redis_inference
     networks:
       - appnet
     restart: unless-stopped
@@ -31,7 +51,7 @@ services:
       - WORKER_ROLE=vip
       - WORKER_ID=2
     depends_on:
-      - redis
+      - redis_inference
     networks:
       - appnet
     restart: unless-stopped
@@ -45,7 +65,7 @@ services:
       - WORKER_ROLE=vip
       - WORKER_ID=3
     depends_on:
-      - redis
+      - redis_inference
     networks:
       - appnet
     restart: unless-stopped
@@ -58,7 +78,7 @@ services:
       - WORKER_ROLE=shared
       - WORKER_ID=1
     depends_on:
-      - redis
+      - redis_inference
     networks:
       - appnet
     restart: unless-stopped
@@ -71,7 +91,7 @@ services:
       - WORKER_ROLE=shared
       - WORKER_ID=2
     depends_on:
-      - redis
+      - redis_inference
     networks:
       - appnet
     restart: unless-stopped
@@ -84,7 +104,7 @@ services:
       - WORKER_ROLE=shared
       - WORKER_ID=3
     depends_on:
-      - redis
+      - redis_inference
     networks:
       - appnet
     restart: unless-stopped
@@ -93,7 +113,7 @@ services:
     build: .
     command: python3 -m app.model.run_autoscaler
     depends_on:
-      - redis
+      - redis_inference
     networks:
       - appnet
     restart: unless-stopped
@@ -110,7 +130,7 @@ services:
     networks:
       - appnet
     depends_on:
-      - redis
+      - redis_sync
     # volumes: mount host machine directory into container filesystem
     volumes:
       - .:/app
@@ -126,7 +146,7 @@ services:
     networks:
       - appnet
     depends_on:
-      - redis
+      - redis_sync
     volumes:
       - .:/app
 
@@ -141,7 +161,7 @@ services:
     networks:
       - appnet
     depends_on:
-      - redis
+      - redis_sync
     volumes:
       - .:/app
 

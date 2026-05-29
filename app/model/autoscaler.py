@@ -2,8 +2,7 @@ import logging
 import time
 
 from prometheus_client import start_http_server
-
-from app.api.transaction_store import redis_client
+from app.shared.redis import inference_redis_client
 from app.model.config import MIN_SHARED_WORKERS, MIN_VIP_WORKERS, SCALE_UP_QUEUE_DEPTH, MAX_SHARED_WORKERS, \
     MAX_VIP_WORKERS, SCALE_DOWN_QUEUE_DEPTH
 from app.shared.metrics import SCALING_EVENTS_TOTAL, ACTIVE_SHARED_WORKERS, ACTIVE_VIP_WORKERS, \
@@ -18,7 +17,6 @@ start_http_server(9005)
 
 MIN_SCALE_INTERVAL_SECONDS = 30
 POLL_INTERVAL_SECONDS = 5
-
 
 class Autoscaler:
     def __init__(self):
@@ -40,7 +38,7 @@ class Autoscaler:
                 raise ValueError(f"Unknown worker role: {worker_role}")
 
             redis_circuit_breaker.call(
-                lambda: redis_client.set(
+                lambda: inference_redis_client.set(
                     worker_role,
                     number_of_workers,
                 ),
