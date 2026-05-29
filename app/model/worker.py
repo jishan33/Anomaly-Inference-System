@@ -4,7 +4,7 @@ import time
 from typing import NamedTuple
 from prometheus_client import start_http_server
 
-from app.api.temp_transaction_store import redis_client
+from app.api.transaction_store import redis_client
 from app.model.batch import process_batch
 from app.shared.metrics import WORKER_ACTIVE_STATE, REDIS_OPERATION_FAILURES_TOTAL
 from app.model.model import model_instance
