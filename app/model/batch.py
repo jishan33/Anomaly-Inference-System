@@ -3,7 +3,7 @@ import logging
 import time
 from typing import List
 
-from app.api.temp_transaction_store import redis_client
+from app.api.transaction_store import redis_client
 from app.model.config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob
 from app.model.inference import run_inference
 from app.shared.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS, \

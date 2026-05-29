@@ -1,8 +1,11 @@
+import logging
+import random
 import redis
 import time
-from typing import List
+from datetime import timezone
+from faker import Faker
 from pydantic import BaseModel
-import logging
+from typing import List
 
 from app.api.config import INSTANCE_ID
 from app.shared.metrics import VOLUME_GAUGE
@@ -22,6 +25,17 @@ class Transaction(BaseModel):
     customer_token: str
     transaction_token: str
 
+# Faker
+fake = Faker()
+def generate_random_transaction():
+    random_date_obj = fake.date_time_between(start_date='-5m', end_date='now', tzinfo=timezone.utc)
+    return Transaction(
+        amount=fake.pyfloat(left_digits=6, right_digits=2, positive=True, min_value=0.01),
+        created_at=random_date_obj.isoformat(),
+        type=random.choice(["PAYMENT", "REFUND", "TRANSFER"]),
+        customer_token=f"C_{fake.hexify(text='^^^^^^^^^^^^^^')}",
+        transaction_token=f"TXN_{fake.uuid4()[:8].upper()}"
+    )
 
 def append_to_redis(transactions: List[Transaction], request_id: str = "unknown"):
     def operation():
@@ -66,7 +80,6 @@ def append_to_redis(transactions: List[Transaction], request_id: str = "unknown"
             }
         )
 
-
 def get_volume(request_id: str):
     """Returns total transaction count across all customers in the last 60s."""
     now = time.time()
@@ -92,7 +105,6 @@ def get_volume(request_id: str):
             }
         )
         return 0
-
 
 def get_customer_transaction_volume(customer_token: str, request_id: str):
     """To get a SPECIFIC customer's volume, we need a per-customer Sorted Set"""
@@ -122,7 +134,6 @@ def get_customer_transaction_volume(customer_token: str, request_id: str):
         )
         return 0
 
-
 # ------------------------
 # Safe wrappers
 # ------------------------
@@ -131,7 +142,6 @@ def safe_get_volume(request_id: str = "unknown") -> int:
         return get_volume(request_id)
     except Exception:
         return 0
-
 
 def safe_get_customer_transaction_volume(customer_token: str, request_id: str = "unknown") -> int:
     try:

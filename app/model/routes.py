@@ -2,7 +2,7 @@ import json
 
 from fastapi import APIRouter, HTTPException
 
-from app.api.temp_transaction_store import redis_client
+from app.api.transaction_store import redis_client
 from app.model.model import PredictRequest
 from app.model.queue_service import enqueue_job
 from app.shared.redis import redis_circuit_breaker
