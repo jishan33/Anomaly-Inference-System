@@ -1,10 +1,24 @@
+from typing import Literal
+
 import redis
+from redis import Redis
 
 from app.shared.circuit_breaker import CircuitBreaker
 
-# connect to Redis (service name = redis)
-redis_client = redis.Redis(
-    host="redis",
+RedisHostType = Literal["sync", "inference"]
+
+sync_redis_client: Redis = redis.Redis(
+    host="localhost",
+    port=6379,
+    decode_responses=True,
+    socket_connect_timeout=0.2,  # connection timeout
+    socket_timeout=0.2,
+    retry_on_timeout=False,
+    health_check_interval=0,
+)
+
+inference_redis_client: Redis = redis.Redis(
+    host="redis_inference",
     port=6379,
     decode_responses=True,
     socket_connect_timeout=0.2,  # connection timeout

@@ -3,7 +3,7 @@ import logging
 import time
 from typing import List
 
-from app.api.transaction_store import redis_client
+from app.shared.redis import inference_redis_client
 from app.model.config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob
 from app.model.inference import run_inference
 from app.shared.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS, \
@@ -29,7 +29,7 @@ def fetch_batch(queue_name: str, max_batch_size: int, max_wait_time: float) -> L
         # raw_job type serialized string or byte or none
         try:
             raw_job: OptionalRawJob = redis_circuit_breaker.call(
-                lambda: redis_client.lpop(queue_name),
+                lambda: inference_redis_client.lpop(queue_name),
                 operation_name="redis_lpop"
             )
         except Exception as e:
@@ -113,7 +113,7 @@ def process_batch(queue_name: str, tier: str, max_batch_size: int, max_wait_time
             else:
                 try:
                     redis_circuit_breaker.call(
-                        lambda: redis_client.rpush(queue_name, json.dumps(job)),
+                        lambda: inference_redis_client.rpush(queue_name, json.dumps(job)),
                         operation_name="redis_requeue"
                     )
                 except Exception as requeue_error:
@@ -129,7 +129,7 @@ def process_batch(queue_name: str, tier: str, max_batch_size: int, max_wait_time
     for job, result in zip(batch, results):
         try:
             redis_circuit_breaker.call(
-                lambda: redis_client.set(f"job_result:{job['job_id']}", json.dumps(result)),
+                lambda: inference_redis_client.set(f"job_result:{job['job_id']}", json.dumps(result)),
                 operation_name="redis_set_result"
             )
             PROCESSED_REQUESTS.labels(result.tier).inc()

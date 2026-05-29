@@ -157,7 +157,7 @@ def debug_cb():
 @app.get("/healthz")
 def health():
     try:
-        redis_client.ping()
+        sync_redis_client.ping()
         return {"status": "okay", "instance": INSTANCE_ID}
     except Exception as e:
         logger.error(
