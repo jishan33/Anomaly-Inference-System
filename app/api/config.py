@@ -9,15 +9,12 @@ from datetime import datetime, timezone
 INSTANCE_ID = os.getenv("INSTANCE_ID", "local")
 LOG_FORMAT = os.getenv("LOG_FORMAT", "json")
 
-
-# Config
-class Config:
-    NORMAL_MIN = 10
-    NORMAL_MAX = 100
-    NORMAL_VOLUME_MIN = 10
-    NORMAL_VOLUME_MAX = 100
-    NORMAL_CUSTOMER_TRANSACTION_VOLUME_MIN = 1
-    NORMAL_CUSTOMER_TRANSACTION_VOLUME_MAX = 10
+NORMAL_MIN = 10
+NORMAL_MAX = 100
+NORMAL_VOLUME_MIN = 10
+NORMAL_VOLUME_MAX = 100
+NORMAL_CUSTOMER_TRANSACTION_VOLUME_MIN = 1
+NORMAL_CUSTOMER_TRANSACTION_VOLUME_MAX = 10
 
 class JsonFormatter(logging.Formatter):
     def format(self, record):
