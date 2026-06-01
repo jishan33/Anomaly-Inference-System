@@ -38,10 +38,7 @@ app = FastAPI(
 
 app.include_router(router)
 
-@app.get("/health")
-def health():
-    return {"status": "healthy"}
-
+# API
 @app.post("/predict_amount")
 def predict_amount(transaction: Transaction):
     score = anomaly_score(transaction)
@@ -137,23 +134,7 @@ def generate_transactions():
     return transactions
 
 
-# debug endpoint
-@app.get("/debug/volume")
-def debug_volume1():
-    # expose minimal info so we can observe per-instance store size
-    return {
-        "instance": INSTANCE_ID,
-        "volume_last_minute": safe_get_volume()
-    }
-
-@app.get("/debug/circuit_breaker")
-def debug_cb():
-    return {
-        "state": redis_circuit_breaker,
-        "failure_count": redis_circuit_breaker.failure_count,
-        "last_failure_time": str(redis_circuit_breaker.last_failure_time)
-    }
-
+# Health
 @app.get("/healthz")
 def health():
     try:
@@ -171,12 +152,62 @@ def health():
         )
         return {"status": "redis-unavailable", "instance": INSTANCE_ID}
 
+@app.get("/live")
+def live():
+    return {
+        "status": "alive",
+        "instance": INSTANCE_ID
+    }
+
+@app.get("/ready")
+def ready():
+    return {
+        "status": "ready",
+        "instance": INSTANCE_ID
+    }
+
+
+# Debug
+@app.get("/whoami")
+def whoami():
+    return {
+        "instance": INSTANCE_ID
+    }
+
+
+@app.get("/debug/volume")
+def debug_volume():
+    # expose minimal info so we can observe per-instance store size
+    return {
+        "instance": INSTANCE_ID,
+        "volume_last_minute": safe_get_volume()
+    }
+
+@app.get("/debug/circuit_breaker")
+def debug_cb():
+    return {
+        "state": redis_circuit_breaker,
+        "failure_count": redis_circuit_breaker.failure_count,
+        "last_failure_time": str(redis_circuit_breaker.last_failure_time)
+    }
+
+# Metric
 @app.get("/metrics")
 def metrics():
     return Response(generate_latest(), media_type="text/plain")
 
+@app.get("/test_metrics")
+def test_metrics():
+    REQUEST_COUNT.labels(
+        instance=INSTANCE_ID,
+        method="GET",
+        endpoint="/test_metrics",
+        status="200"
+    ).inc()
+    return {"ok": True}
 
-# Exception handler
+
+# Exception Handler
 @app.exception_handler(FastAPIHTTPException)
 async def http_exception_handler(request: Request, exc: FastAPIHTTPException):
     request_id = getattr(request.state, "request_id", "unknown")
@@ -228,13 +259,3 @@ async def global_exception_handler(request: Request, exc: Exception):
             "request_id": request_id
         }
     )
-
-@app.get("/test_metrics")
-def test_metrics():
-    REQUEST_COUNT.labels(
-        instance=INSTANCE_ID,
-        method="GET",
-        endpoint="/test_metrics",
-        status="200"
-    ).inc()
-    return {"ok": True}
