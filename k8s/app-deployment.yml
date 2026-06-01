@@ -20,8 +20,25 @@ spec:
       containers:
         - name: anomaly-inference-container
           image: anomaly-inference-system:latest
-
           imagePullPolicy: Never
-
+          envFrom:
+            - configMapRef:
+                name: anomaly-inference-config
           ports:
             - containerPort: 8000
+
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 8000
+
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8000
+
+            initialDelaySeconds: 5
+            periodSeconds: 5

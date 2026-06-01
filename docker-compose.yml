@@ -37,6 +37,8 @@ services:
     environment:
       - WORKER_ROLE=vip
       - WORKER_ID=1
+      - REDIS_INFERENCE_HOST=redis-inference
+      - REDIS_INFERENCE_PORT=6379
     depends_on:
       - redis_inference
     networks:
@@ -50,6 +52,8 @@ services:
     environment:
       - WORKER_ROLE=vip
       - WORKER_ID=2
+      - REDIS_INFERENCE_HOST=redis-inference
+      - REDIS_INFERENCE_PORT=6379
     depends_on:
       - redis_inference
     networks:
@@ -64,6 +68,8 @@ services:
     environment:
       - WORKER_ROLE=vip
       - WORKER_ID=3
+      - REDIS_INFERENCE_HOST=redis-inference
+      - REDIS_INFERENCE_PORT=6379
     depends_on:
       - redis_inference
     networks:
@@ -77,6 +83,8 @@ services:
     environment:
       - WORKER_ROLE=shared
       - WORKER_ID=1
+      - REDIS_INFERENCE_HOST=redis-inference
+      - REDIS_INFERENCE_PORT=6379
     depends_on:
       - redis_inference
     networks:
@@ -90,6 +98,8 @@ services:
     environment:
       - WORKER_ROLE=shared
       - WORKER_ID=2
+      - REDIS_INFERENCE_HOST=redis-inference
+      - REDIS_INFERENCE_PORT=6379
     depends_on:
       - redis_inference
     networks:
@@ -103,6 +113,8 @@ services:
     environment:
       - WORKER_ROLE=shared
       - WORKER_ID=3
+      - REDIS_INFERENCE_HOST=redis-inference
+      - REDIS_INFERENCE_PORT=6379
     depends_on:
       - redis_inference
     networks:
