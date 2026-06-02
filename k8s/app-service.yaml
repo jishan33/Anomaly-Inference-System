@@ -10,7 +10,9 @@ spec:
 
   ports:
     - protocol: TCP
+      # service port (for external communication)
       port: 80
+      # pod port (internal communication)
       targetPort: 8000
 
   type: LoadBalancer

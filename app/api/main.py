@@ -19,7 +19,7 @@ from app.api.request_logging_middleware import RequestLoggingMiddleware
 from app.api.transaction_store import Transaction, append_to_redis, safe_get_customer_transaction_volume, \
     safe_get_volume, redis_circuit_breaker, generate_random_transaction
 from app.api.validation import CustomerRequest
-from app.shared.redis import sync_redis_client
+from app.shared.redis import get_redis_client
 
 # Logging should be configured exactly once, at app startup!!!
 setup_logging()
@@ -138,7 +138,9 @@ def generate_transactions():
 @app.get("/healthz")
 def health():
     try:
-        sync_redis_client.ping()
+        redis_client = get_redis_client()
+        logger.info(f"REDIS_CLIENT: {redis_client}")
+        redis_client.ping()
         return {"status": "okay", "instance": INSTANCE_ID}
     except Exception as e:
         logger.error(

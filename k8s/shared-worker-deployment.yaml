@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: shared-worker
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: shared-worker
+
+  template:
+    metadata:
+      labels:
+        app: shared-worker
+
+    spec:
+      containers:
+        - name: shared-worker
+          image: anomaly-inference-system:latest
+          imagePullPolicy: Never
+          command:
+            - python3
+            - -m
+            - app.model.worker
+
+          env:
+            - name: WORKER_ROLE
+              value: "shared"
+            - name: REDIS_HOST
+              value: "inference"
+          envFrom:
+            - configMapRef:
+                name: anomaly-inference-config

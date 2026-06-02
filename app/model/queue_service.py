@@ -8,9 +8,11 @@ from typing import TypedDict, Any
 from app.model.config import VIP_QUEUE, FREE_QUEUE, RawJob, DEAD_LETTER_QUEUE
 from app.shared.metrics import QUEUE_INGRESS_TOTAL, DEAD_LETTER_QUEUE_JOBS_TOTAL, DEAD_LETTER_QUEUE_PUSH_ATTEMPTS_TOTAL, \
     DLQ_PUSH_FAILURE_TOTAL, REDIS_OPERATION_FAILURES_TOTAL
-from app.shared.redis import redis_circuit_breaker, inference_redis_client
+from app.shared.redis import redis_circuit_breaker, get_redis_client
 
 logger = logging.getLogger(__name__)
+
+redis_client = get_redis_client()
 
 class QueueJob(TypedDict):
     job_id: str
@@ -38,7 +40,7 @@ def enqueue_job(transaction: dict[str, Any]) -> str:
     queue_name = VIP_QUEUE if tier == "vip" else FREE_QUEUE
     try:
         redis_circuit_breaker.call(
-            lambda : inference_redis_client.rpush(
+            lambda : redis_client.rpush(
                 queue_name,
                 json.dumps(job)
             ),
@@ -58,7 +60,7 @@ def enqueue_job(transaction: dict[str, Any]) -> str:
 def get_queue_depth(queue_name: str) -> int|None:
     try:
         queue_depth = redis_circuit_breaker.call(
-            lambda: inference_redis_client.llen(queue_name),
+            lambda: redis_client.llen(queue_name),
             operation_name=f"redis_llen_{queue_name}"
         )
         return queue_depth
@@ -77,7 +79,7 @@ def move_to_dlq(raw_job: RawJob, reason: str) -> bool:
         DEAD_LETTER_QUEUE_PUSH_ATTEMPTS_TOTAL.labels(reason=reason).inc()
 
         redis_circuit_breaker.call(
-            lambda : inference_redis_client.rpush(DEAD_LETTER_QUEUE, json.dumps(dlq_payload)),
+            lambda : redis_client.rpush(DEAD_LETTER_QUEUE, json.dumps(dlq_payload)),
             operation_name= "redis_dlq_push"
         )
 
