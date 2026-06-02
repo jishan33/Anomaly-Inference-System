@@ -4,7 +4,6 @@ import uuid
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.api.config import INSTANCE_ID
 from app.shared.metrics import REQUEST_COUNT, REQUEST_LATENCY, ERROR_COUNT
 
 logger = logging.getLogger(__name__)
@@ -23,28 +22,25 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             status_code = response.status_code
         except Exception as e:
             ERROR_COUNT.labels(
-                instance=INSTANCE_ID, type="http_error", status=str(status_code),
+                type="http_error", status=str(status_code),
                 endpoint=request.url.path).inc()
             # Let global handler deal with it
             raise e
         finally:
             process_time = time.time() - start_time
             REQUEST_COUNT.labels(
-                instance=INSTANCE_ID,
                 method=request.method,
                 endpoint=request.url.path,
                 status=str(status_code)
             ).inc()
 
             REQUEST_LATENCY.labels(
-                instance=INSTANCE_ID,
                 method=request.method,
                 endpoint=request.url.path
             ).observe(process_time)
 
             if status_code >= 400:
                 ERROR_COUNT.labels(
-                instance=INSTANCE_ID,
                 type="http_error",
                 status=str(status_code),
                 endpoint=request.url.path
@@ -56,7 +52,6 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             extra={
                 "extra_data": {
                     "request_id": request_id,
-                    "instance": INSTANCE_ID,
                     "method": request.method,
                     "path": request.url.path,
                     "status_code": response.status_code,

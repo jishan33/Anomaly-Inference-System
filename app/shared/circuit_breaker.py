@@ -1,7 +1,6 @@
 import logging
 import time
 
-from app.api.config import INSTANCE_ID
 from app.shared.metrics import CIRCUIT_BREAKER_STATE
 from enum import Enum
 from typing import Callable, TypeVar
@@ -74,7 +73,7 @@ class CircuitBreaker:
         if self.state == CircuitBreakerState.OPEN:
             if self._can_attempt_recovery():
                 self.state = CircuitBreakerState.HALF_OPEN
-                CIRCUIT_BREAKER_STATE.labels(instance=INSTANCE_ID, operation=operation_name).set(2)
+                CIRCUIT_BREAKER_STATE.labels(operation=operation_name).set(2)
                 logger.warning(
                     "circuit_half_open",
                     extra={"extra_data": {"operation": operation_name, "request_id": request_id}}
@@ -108,7 +107,7 @@ class CircuitBreaker:
     # ------------------------
 
     def _on_success(self, operation_name: str, request_id: str = "unknown"):
-        CIRCUIT_BREAKER_STATE.labels(instance=INSTANCE_ID, operation=operation_name).set(0)
+        CIRCUIT_BREAKER_STATE.labels(operation=operation_name).set(0)
         if self.state in [CircuitBreakerState.HALF_OPEN, CircuitBreakerState.OPEN]:
             logger.info(
                 "circuit_closed",
@@ -135,7 +134,7 @@ class CircuitBreaker:
 
         if self.failure_count >= self.failure_threshold:
             self.state = CircuitBreakerState.OPEN
-            CIRCUIT_BREAKER_STATE.labels(instance=INSTANCE_ID, operation=operation_name).set(1)
+            CIRCUIT_BREAKER_STATE.labels(operation=operation_name).set(1)
             logger.error(
                 "circuit_opened",
                 extra={"extra_data": {"operation": operation_name, "request_id": request_id}}

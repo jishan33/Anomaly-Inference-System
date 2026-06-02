@@ -6,13 +6,13 @@ from prometheus_client import Counter, Histogram, Gauge
 REQUEST_COUNT = Counter(
     "fastapi_request_count_total",
     "Total number of requests processed",
-    ["instance", "method", "endpoint", "status"]
+    ["method", "endpoint", "status"]
 )
 
 REQUEST_LATENCY = Histogram(
     "fastapi_request_latency_seconds",
     "Request latency in seconds",
-    ["instance", "method", "endpoint"]
+    ["method", "endpoint"]
 )
 
 # ------------------------
@@ -21,7 +21,7 @@ REQUEST_LATENCY = Histogram(
 ERROR_COUNT = Counter(
     "app_errors_total",
     "Total number of errors",
-    ["instance","type", "status", "endpoint"]
+    ["type", "status", "endpoint"]
 )
 
 # ------------------------
@@ -30,19 +30,17 @@ ERROR_COUNT = Counter(
 ANOMALY_COUNT = Counter(
     "anomaly_detected_total",
     "Total number of detected anomalies",
-    ["instance", "type"]  # type user, volume, transaction
+    ["type"]  # type user, volume, transaction
 )
 
 USER_RATE_LIMIT = Gauge(
     "user_rate_limited_total",
     "Number of users rate-limited in last minute",
-    ["instance"]
 )
 
 VOLUME_GAUGE = Gauge(
     "transaction_volume_last_minute",
     "Number of transactions processed in the last minute",
-    ["instance"]
 )
 
 # ------------------------
@@ -51,14 +49,14 @@ VOLUME_GAUGE = Gauge(
 CIRCUIT_BREAKER_STATE = Gauge(
     "redis_circuit_breaker_state",
     "State of Redis Circuit Breaker: 0=CLOSED, 1=OPEN, 2=HALF_OPEN",
-    ["instance", "operation"]
+    ["operation"]
 )
 
 # Retry metrics
 RETRY_COUNT = Counter(
     "retry_attempts_total",
     "Total retry attempts",
-    ["instance", "operation"]
+    ["operation"]
 )
 
 # Model

@@ -3,10 +3,6 @@ import os
 import logging
 from datetime import datetime, timezone
 
-### “Each customer can only make N requests per minute” ###
-
-# instance id (set via env in docker-compose)
-INSTANCE_ID = os.getenv("INSTANCE_ID", "local")
 LOG_FORMAT = os.getenv("LOG_FORMAT", "json")
 
 NORMAL_MIN = 10
@@ -23,7 +19,6 @@ class JsonFormatter(logging.Formatter):
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
-            "instance_id": INSTANCE_ID,
         }
 
         # Include extra fields if present

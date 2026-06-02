@@ -3,7 +3,6 @@ import random
 import logging
 from typing import Callable
 
-from app.api.config import INSTANCE_ID
 from app.shared.metrics import RETRY_COUNT
 
 logger = logging.getLogger(__name__)
@@ -22,7 +21,7 @@ def retry_with_backoff(
 
     for attempt in range(1, max_retries + 1):
         try:
-            RETRY_COUNT.labels(instance=INSTANCE_ID, operation = operation_name).inc()
+            RETRY_COUNT.labels(operation = operation_name).inc()
             return func()
 
         except exceptions as e:

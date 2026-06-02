@@ -7,7 +7,6 @@ from faker import Faker
 from pydantic import BaseModel
 from typing import List
 
-from app.api.config import INSTANCE_ID
 from app.shared import redis
 from app.shared.metrics import VOLUME_GAUGE
 from app.api.retry import retry_with_backoff
@@ -68,7 +67,7 @@ def append_to_redis(transactions: List[Transaction], request_id: str = "unknown"
             operation_name="append_to_redis",
             request_id= request_id
         )
-        VOLUME_GAUGE.labels(instance=INSTANCE_ID)
+        VOLUME_GAUGE.inc()
     except redis.RedisError as e:
         logger.error(
             "redis_error",
