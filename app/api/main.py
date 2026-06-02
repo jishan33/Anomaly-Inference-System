@@ -1,5 +1,6 @@
 import logging
 import random
+import socket
 import traceback
 from contextlib import asynccontextmanager
 from typing import List
@@ -13,7 +14,7 @@ from prometheus_client import generate_latest
 from app.api.anomaly_detect import anomaly_score, anomaly_volume_score, anomaly_customer_transaction_volume_score
 from app.model.model import model_instance
 from app.model.routes import router
-from app.api.config import INSTANCE_ID, setup_logging
+from app.api.config import setup_logging
 from app.shared.metrics import ANOMALY_COUNT, USER_RATE_LIMIT, REQUEST_COUNT
 from app.api.request_logging_middleware import RequestLoggingMiddleware
 from app.api.transaction_store import Transaction, append_to_redis, safe_get_customer_transaction_volume, \
@@ -36,6 +37,8 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+HOSTNAME = socket.gethostname()
+
 app.include_router(router)
 
 # API
@@ -44,7 +47,7 @@ def predict_amount(transaction: Transaction):
     score = anomaly_score(transaction)
     alert_flag = score > 0.7
     if alert_flag:
-        ANOMALY_COUNT.labels(instance=INSTANCE_ID, type="amount").inc()
+        ANOMALY_COUNT.labels(type="amount").inc()
     return {
         "anomaly_score": score,
         "alert_flag": alert_flag
@@ -70,7 +73,7 @@ def predict_volume(transactions: List[Transaction], request: Request):
     score = anomaly_volume_score(volume)
     alert_flag = score > 0.7
     if alert_flag:
-        ANOMALY_COUNT.labels(instance=INSTANCE_ID, type="volume").inc()
+        ANOMALY_COUNT.labels(type="volume").inc()
     return {
         "volume_last_minute": volume,
         "anomaly_score": score,
@@ -97,7 +100,7 @@ def predict_customer_transaction_volume(customer: CustomerRequest, request: Requ
     score = anomaly_customer_transaction_volume_score(volume)
     limited = score > 0.7
     if limited:
-        USER_RATE_LIMIT.labels(instance= INSTANCE_ID).inc()
+        USER_RATE_LIMIT.inc()
         logger.warning(
             "rate_limited",
             extra={
@@ -139,33 +142,33 @@ def generate_transactions():
 def health():
     try:
         redis_client = get_redis_client()
-        logger.info(f"REDIS_CLIENT: {redis_client}")
+        logger.info(f"REDIS_CLIENT: {redis_client}, HOSTNAME: {HOSTNAME}")
         redis_client.ping()
-        return {"status": "okay", "instance": INSTANCE_ID}
+        return {"status": "okay", "hostname": HOSTNAME}
     except Exception as e:
         logger.error(
             "redis_error",
             extra={
                 "extra_data": {
-                    "instance_id": INSTANCE_ID,
+                    "hostname": HOSTNAME,
                     "error": str(e)
                 }
             }
         )
-        return {"status": "redis-unavailable", "instance": INSTANCE_ID}
+        return {"status": "redis-unavailable", "hostname": HOSTNAME}
 
 @app.get("/live")
 def live():
     return {
         "status": "alive",
-        "instance": INSTANCE_ID
+        "hostname": HOSTNAME
     }
 
 @app.get("/ready")
 def ready():
     return {
         "status": "ready",
-        "instance": INSTANCE_ID
+        "hostname": HOSTNAME
     }
 
 
@@ -173,15 +176,15 @@ def ready():
 @app.get("/whoami")
 def whoami():
     return {
-        "instance": INSTANCE_ID
+        "hostname": HOSTNAME
     }
 
 
 @app.get("/debug/volume")
 def debug_volume():
-    # expose minimal info so we can observe per-instance store size
+
     return {
-        "instance": INSTANCE_ID,
+        "hostname": HOSTNAME,
         "volume_last_minute": safe_get_volume()
     }
 
@@ -201,7 +204,7 @@ def metrics():
 @app.get("/test_metrics")
 def test_metrics():
     REQUEST_COUNT.labels(
-        instance=INSTANCE_ID,
+        hostname=HOSTNAME,
         method="GET",
         endpoint="/test_metrics",
         status="200"
