@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: vip-worker
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: vip-worker
+
+  template:
+    metadata:
+      labels:
+        app: vip-worker
+
+    spec:
+      containers:
+        - name: vip-worker
+          image: anomaly-inference-system:latest
+          imagePullPolicy: Never
+          command:
+            - python3
+            - -m
+            - app.model.worker
+
+          env:
+            - name: WORKER_ROLE
+              value: "vip"
+            - name: REDIS_HOST
+              value: "inference"
+          envFrom:
+            - configMapRef:
+                name: anomaly-inference-config

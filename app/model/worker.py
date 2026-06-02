@@ -4,7 +4,7 @@ import time
 from typing import NamedTuple
 from prometheus_client import start_http_server
 
-from app.shared.redis import redis_circuit_breaker, inference_redis_client
+from app.shared.redis import redis_circuit_breaker, get_redis_client
 from app.model.batch import process_batch
 from app.shared.metrics import WORKER_ACTIVE_STATE, REDIS_OPERATION_FAILURES_TOTAL
 from app.model.model import model_instance
@@ -28,8 +28,9 @@ class WorkerCounts(NamedTuple):
 
 def get_active_workers()-> WorkerCounts|None:
     try:
+        redis_client = get_redis_client()
         vip_raw, shared_raw = redis_circuit_breaker.call(
-                lambda : inference_redis_client.mget(
+                lambda : redis_client.mget(
                 "active_vip_workers",
                 "active_shared_workers"
             ),

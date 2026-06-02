@@ -21,6 +21,9 @@ spec:
         - name: anomaly-inference-container
           image: anomaly-inference-system:latest
           imagePullPolicy: Never
+          env:
+            - name: REDIS_HOST
+              value: "sync"
           envFrom:
             - configMapRef:
                 name: anomaly-inference-config
