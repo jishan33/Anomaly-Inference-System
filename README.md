@@ -322,10 +322,10 @@ The Kubernetes deployment supports:
 
 # 🚀 Kubernetes Manifests
 
-| Manifest                 | Purpose            |
-| ------------------------ | ------------------ |
-| `k8s/app-deployment.yml` | FastAPI deployment |
-| `k8s/app-service.yml`    | Kubernetes Service |
+| Manifest                  | Purpose            |
+|---------------------------| ------------------ |
+| `k8s/app-deployment.yaml` | FastAPI deployment |
+| `k8s/app-service.yaml`    | Kubernetes Service |
 
 ---
 
@@ -334,8 +334,8 @@ The Kubernetes deployment supports:
 ## Deploy Application
 
 ```bash
-kubectl apply -f k8s/app-deployment.yml
-kubectl apply -f k8s/app-service.yml
+kubectl apply -f k8s/app-deployment.yaml
+kubectl apply -f k8s/app-service.yaml
 ```
 
 ## Verify Resources
@@ -422,8 +422,8 @@ app/
 │
 ├── dashboards/
 ├── nginx.conf
-├── prometheus.yml
-├── docker-compose.yml
+├── prometheus.yaml
+├── docker-compose.yaml
 └── README.md
 ```
 
