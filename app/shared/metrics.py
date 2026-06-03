@@ -59,13 +59,13 @@ RETRY_COUNT = Counter(
     ["operation"]
 )
 
-# Model
-MODEL_LATENCY = Histogram(
+# inference
+INFERENCE_LATENCY = Histogram(
     "fastapi_model_latency_seconds",
     "Model latency in seconds"
 )
 
-MODEL_PREDICTIONS = Counter(
+INFERENCE_PREDICTIONS = Counter(
     "model_predictions_total",
     "Total number of model predictions",
     ["result"]

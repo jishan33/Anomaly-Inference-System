@@ -5,7 +5,7 @@ import time
 import uuid
 from typing import TypedDict, Any
 
-from app.model.config import VIP_QUEUE, FREE_QUEUE, RawJob, DEAD_LETTER_QUEUE
+from app.inference.config import VIP_QUEUE, FREE_QUEUE, RawJob, DEAD_LETTER_QUEUE
 from app.shared.metrics import QUEUE_INGRESS_TOTAL, DEAD_LETTER_QUEUE_JOBS_TOTAL, DEAD_LETTER_QUEUE_PUSH_ATTEMPTS_TOTAL, \
     DLQ_PUSH_FAILURE_TOTAL, REDIS_OPERATION_FAILURES_TOTAL
 from app.shared.redis import redis_circuit_breaker, get_redis_client

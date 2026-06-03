@@ -3,8 +3,8 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from app.model.config import RawJob
-from app.model.queue_service import QueueJob
+from app.inference.config import RawJob
+from app.inference.queue_service import QueueJob
 
 
 def validate_queue_job(job: RawJob) -> QueueJob:

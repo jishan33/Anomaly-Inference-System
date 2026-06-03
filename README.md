@@ -411,7 +411,7 @@ This project focuses on:
 ```text
 app/
 ├── api/
-├── model/
+├── inference/
 │   ├── autoscaler.py
 │   ├── batch.py
 │   ├── metrics.py
