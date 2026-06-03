@@ -12,7 +12,7 @@
 BATCH_SIZE=200
 
 # API endpoint
-URL="http://localhost:8000/predict_async"
+URL="http://localhost:80/predict_async"
 
 # 2. Calculate the end time (5 minutes = 300 seconds from now)
 DURATION=300
