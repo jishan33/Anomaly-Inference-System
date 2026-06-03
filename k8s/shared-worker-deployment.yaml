@@ -29,8 +29,6 @@ spec:
           env:
             - name: WORKER_ROLE
               value: "shared"
-            - name: REDIS_HOST
-              value: "inference"
           envFrom:
             - configMapRef:
                 name: anomaly-inference-config
