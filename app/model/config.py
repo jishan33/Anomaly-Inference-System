@@ -26,20 +26,6 @@ RATIO_THRESHOLDS: List[Tuple[int, float]] = [
     (0, 1.0)
 ]
 
-
-#--------------------------------------------
-# Autoscaling workers configurations
-#--------------------------------------------
-MIN_SHARED_WORKERS = 1
-MAX_SHARED_WORKERS = 4
-
-MIN_VIP_WORKERS = 2
-MAX_VIP_WORKERS = 4
-
-SCALE_UP_QUEUE_DEPTH = 20
-SCALE_DOWN_QUEUE_DEPTH = 5
-
-
 #-------------------
 # Queue Jobs
 #-------------------
