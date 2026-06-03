@@ -3,7 +3,7 @@ import logging
 import time
 from typing import List
 
-from app.shared.redis import get_redis_client
+from app.shared.redis import redis_client
 from app.inference.config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob
 from app.inference.inference import run_inference
 from app.shared.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS, \
@@ -13,8 +13,6 @@ from app.inference.validate import validate_queue_job
 from app.shared.redis import redis_circuit_breaker
 
 logger = logging.getLogger(__name__)
-
-redis_client = get_redis_client()
 
 def fetch_batch(queue_name: str, max_batch_size: int, max_wait_time: float) -> List[QueueJob]:
     """

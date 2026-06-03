@@ -6,10 +6,7 @@ metadata:
   name: anomaly-inference-config
 
 data:
-  REDIS_SYNC_HOST: "redis-sync"
-  REDIS_SYNC_PORT: "6379"
-
-  REDIS_INFERENCE_HOST: "redis-inference"
-  REDIS_INFERENCE_PORT: "6379"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
 
   LOG_LEVEL: "INFO"

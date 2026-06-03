@@ -10,13 +10,12 @@ from typing import List
 from app.shared import redis
 from app.shared.metrics import VOLUME_GAUGE
 from app.api.retry import retry_with_backoff
-from app.shared.redis import redis_circuit_breaker, get_redis_client
+from app.shared.redis import redis_circuit_breaker
 
 logger = logging.getLogger(__name__)
 KEY = "transactions"
 WINDOW_SECONDS = 60
 
-redis_client = get_redis_client()
 # Model
 class Transaction(BaseModel):
     amount: float
