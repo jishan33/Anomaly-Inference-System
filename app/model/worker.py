@@ -6,7 +6,7 @@ from prometheus_client import start_http_server
 
 from app.shared.redis import redis_circuit_breaker, get_redis_client
 from app.model.batch import process_batch
-from app.shared.metrics import WORKER_ACTIVE_STATE, REDIS_OPERATION_FAILURES_TOTAL
+from app.shared.metrics import REDIS_OPERATION_FAILURES_TOTAL
 from app.model.model import model_instance
 from app.model.config import FREE_QUEUE, VIP_QUEUE
 from app.model.queue_service import get_queue_depth
@@ -16,7 +16,6 @@ logger = logging.getLogger("worker")
 logger.info("worker.py loaded")
 
 WORKER_ROLE = os.getenv("WORKER_ROLE", "unknown")
-WORKER_ID = os.getenv("WORKER_ID", "1")
 
 start_http_server(9001)
 
@@ -51,38 +50,23 @@ def worker_loop():
     logger.info("Worker loop started...")
     while True:
         schedular =  get_batch_scheduler()
-        active_counts: WorkerCounts|None = get_active_workers()
 
         vip_depth: int|None = get_queue_depth(VIP_QUEUE)
         vip_processed = False
         free_processed = False
 
-        if active_counts is not None:
-            is_active_vip = (WORKER_ROLE == "vip" and int(WORKER_ID) <= active_counts.vip)
-            is_active_shared = (WORKER_ROLE == "shared" and int(WORKER_ID) <= active_counts.shared)
-
-            if is_active_vip or is_active_shared:
-                 WORKER_ACTIVE_STATE.labels(
-                     worker_role=WORKER_ROLE,
-                     worker_id=WORKER_ID
-                 ).set(1)
-            else:
-                WORKER_ACTIVE_STATE.labels(
-                    worker_role=WORKER_ROLE,
-                    worker_id=WORKER_ID
-                ).set(0)
-                time.sleep(1)
-                continue
+        is_active_vip = WORKER_ROLE == "vip"
+        is_active_shared = WORKER_ROLE == "shared"
 
         # ----------------------------------------------------------------------
         # VIP priority scheduling and only use active workers
         # ----------------------------------------------------------------------
 
-        if WORKER_ROLE == "vip":
+        if is_active_vip:
             vip_processed = process_batch(VIP_QUEUE, "vip", schedular.vip_max_batch_size, schedular.vip_max_wait_time, WORKER_ROLE)
-        elif WORKER_ROLE == "shared" and vip_depth is not None and vip_depth > 20:
+        elif is_active_shared and vip_depth is not None and vip_depth > 20:
             vip_processed = process_batch(VIP_QUEUE, "vip", schedular.free_max_batch_size, schedular.vip_max_wait_time, WORKER_ROLE)
-        elif WORKER_ROLE == "shared":
+        elif is_active_shared:
             free_processed = process_batch(FREE_QUEUE, "free", schedular.free_max_batch_size, schedular.free_max_wait_time, WORKER_ROLE)
 
 
