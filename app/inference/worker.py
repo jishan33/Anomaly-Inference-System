@@ -1,12 +1,9 @@
 import logging
 import os
 import time
-from typing import NamedTuple
 from prometheus_client import start_http_server
 
-from app.shared.redis import redis_circuit_breaker, get_redis_client
 from app.inference.batch import process_batch
-from app.shared.metrics import REDIS_OPERATION_FAILURES_TOTAL
 from app.inference.model import model_instance
 from app.inference.config import FREE_QUEUE, VIP_QUEUE
 from app.inference.queue_service import get_queue_depth
@@ -20,31 +17,6 @@ WORKER_ROLE = os.getenv("WORKER_ROLE", "unknown")
 start_http_server(9001)
 
 model_instance.load()
-
-class WorkerCounts(NamedTuple):
-    vip: int
-    shared: int
-
-def get_active_workers()-> WorkerCounts|None:
-    try:
-        redis_client = get_redis_client()
-        vip_raw, shared_raw = redis_circuit_breaker.call(
-                lambda : redis_client.mget(
-                "active_vip_workers",
-                "active_shared_workers"
-            ),
-            operation_name="redis_mget"
-        )
-        return WorkerCounts(
-            vip= int(vip_raw or 1),
-            shared= int(shared_raw or 1)
-        )
-    except Exception as e:
-        REDIS_OPERATION_FAILURES_TOTAL.labels(operation="redis_mget").inc()
-        logger.error(f"redis is unavailable for mget operation: {e}")
-
-
-
 
 def worker_loop():
     logger.info("Worker loop started...")
