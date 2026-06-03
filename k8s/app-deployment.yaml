@@ -42,3 +42,14 @@ spec:
 
             initialDelaySeconds: 5
             periodSeconds: 5
+
+          resources:
+            requests:
+              #1000m = 1 CPU core
+              cpu: "200m"
+              memory: "256Mi"
+
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
