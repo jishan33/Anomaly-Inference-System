@@ -3,8 +3,8 @@ import json
 from fastapi import APIRouter, HTTPException
 
 from app.shared.redis import get_redis_client
-from app.model.model import PredictRequest
-from app.model.queue_service import enqueue_job
+from app.inference.model import PredictRequest
+from app.inference.queue_service import enqueue_job
 from app.shared.redis import redis_circuit_breaker
 
 router = APIRouter()

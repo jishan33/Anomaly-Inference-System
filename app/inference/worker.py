@@ -5,12 +5,12 @@ from typing import NamedTuple
 from prometheus_client import start_http_server
 
 from app.shared.redis import redis_circuit_breaker, get_redis_client
-from app.model.batch import process_batch
+from app.inference.batch import process_batch
 from app.shared.metrics import REDIS_OPERATION_FAILURES_TOTAL
-from app.model.model import model_instance
-from app.model.config import FREE_QUEUE, VIP_QUEUE
-from app.model.queue_service import get_queue_depth
-from app.model.scheduler import get_batch_scheduler
+from app.inference.model import model_instance
+from app.inference.config import FREE_QUEUE, VIP_QUEUE
+from app.inference.queue_service import get_queue_depth
+from app.inference.scheduler import get_batch_scheduler
 
 logger = logging.getLogger("worker")
 logger.info("worker.py loaded")
@@ -77,9 +77,9 @@ def worker_loop():
         if not vip_processed and not free_processed:
             time.sleep(0.1)
 #-----------------------------------------------------------------------------------------------
-# python3 -m app.model.worker
+# python3 -m app.inference.worker
 # Let's look at what Python does behind the scenes when you press enter:
-# Locates the file: Python looks through your directories and finds app/model/worker.py.
+# Locates the file: Python looks through your directories and finds app/inference/worker.py.
 # Assigns the Crown: Because of that -m flag,
 # Python treats this file as the absolute boss of the current execution.
 # It sets:  __name__==__main__

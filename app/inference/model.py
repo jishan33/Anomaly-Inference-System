@@ -2,7 +2,7 @@ from typing import NamedTuple
 from sklearn.ensemble import IsolationForest
 from pydantic import BaseModel, Field
 
-from app.model.features import Features
+from app.inference.features import Features
 
 class PredictionResult(NamedTuple):
     is_anomaly: bool

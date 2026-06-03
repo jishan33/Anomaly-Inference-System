@@ -4,12 +4,12 @@ import time
 from typing import List
 
 from app.shared.redis import get_redis_client
-from app.model.config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob
-from app.model.inference import run_inference
+from app.inference.config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob
+from app.inference.inference import run_inference
 from app.shared.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS, \
     REDIS_OPERATION_FAILURES_TOTAL
-from app.model.queue_service import QueueJob, get_queue_depth, move_to_dlq
-from app.model.validate import validate_queue_job
+from app.inference.queue_service import QueueJob, get_queue_depth, move_to_dlq
+from app.inference.validate import validate_queue_job
 from app.shared.redis import redis_circuit_breaker
 
 logger = logging.getLogger(__name__)

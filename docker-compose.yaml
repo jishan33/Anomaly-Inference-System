@@ -32,7 +32,7 @@ services:
   vip_worker1:
     build: .
     # command: what process the container should run when it starts
-    command: python3 -m app.model.worker
+    command: python3 -m app.inference.worker
     container_name: vip_worker1
     environment:
       - WORKER_ROLE=vip
@@ -47,7 +47,7 @@ services:
 
   vip_worker2:
     build: .
-    command: python3 -m app.model.worker
+    command: python3 -m app.inference.worker
     container_name: vip_worker2
     environment:
       - WORKER_ROLE=vip
@@ -63,7 +63,7 @@ services:
   vip_worker3:
     build: .
     # command: what process the container should run when it starts
-    command: python3 -m app.model.worker
+    command: python3 -m app.inference.worker
     container_name: vip_worker3
     environment:
       - WORKER_ROLE=vip
@@ -78,7 +78,7 @@ services:
 
   shared_worker1:
     build: .
-    command: python3 -m app.model.worker
+    command: python3 -m app.inference.worker
     container_name: shared_worker1
     environment:
       - WORKER_ROLE=shared
@@ -93,7 +93,7 @@ services:
 
   shared_worker2:
     build: .
-    command: python3 -m app.model.worker
+    command: python3 -m app.inference.worker
     container_name: shared_worker2
     environment:
       - WORKER_ROLE=shared
@@ -108,7 +108,7 @@ services:
 
   shared_worker3:
     build: .
-    command: python3 -m app.model.worker
+    command: python3 -m app.inference.worker
     container_name: shared_worker3
     environment:
       - WORKER_ROLE=shared
@@ -123,7 +123,7 @@ services:
 
   autoscaler:
     build: .
-    command: python3 -m app.model.run_autoscaler
+    command: python3 -m app.inference.run_autoscaler
     depends_on:
       - redis_inference
     networks:

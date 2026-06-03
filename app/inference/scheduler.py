@@ -1,9 +1,9 @@
 from typing import NamedTuple, Tuple
 
-from app.model.config import BatchConfig, BATCH_THRESHOLDS, RATIO_THRESHOLDS
-from app.model.config import FREE_QUEUE, VIP_QUEUE
+from app.inference.config import BatchConfig, BATCH_THRESHOLDS, RATIO_THRESHOLDS
+from app.inference.config import FREE_QUEUE, VIP_QUEUE
 from app.shared.metrics import  CURRENT_BATCH_SIZE, CURRENT_BATCH_TIMEOUT
-from app.model.queue_service import get_queue_depth
+from app.inference.queue_service import get_queue_depth
 
 
 class BatchScheduler(NamedTuple):

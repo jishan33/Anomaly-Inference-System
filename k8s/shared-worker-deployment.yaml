@@ -24,7 +24,7 @@ spec:
           command:
             - python3
             - -m
-            - app.model.worker
+            - app.inference.worker
 
           env:
             - name: WORKER_ROLE
