@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: shared-worker
+
+spec:
+  selector:
+    app: shared-worker
+
+  ports:
+    - port: 9001
+      targetPort: 9001
