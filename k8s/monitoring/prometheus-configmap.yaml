@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+data:
+  prometheus.yaml: |
+    global:
+      scrape_interval: 15s
+
+    scrape_configs:
+      - job_name: 'anomaly-api'
+        static_configs:
+          - targets: 
+            - anomaly-inference-service:80  
+      - job_name: 'vip-worker'
+        static_configs:
+          - targets:
+              - vip-worker:9001
+      - job_name: 'shared-worker'
+        static_configs:
+          - targets:
+              - shared-worker:9001
