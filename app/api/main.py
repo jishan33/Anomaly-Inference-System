@@ -155,14 +155,14 @@ def health():
         )
         return {"status": "redis-unavailable", "hostname": HOSTNAME}
 
-@app.get("/live")
+@app.get("/livez")
 def live():
     return {
         "status": "alive",
         "hostname": HOSTNAME
     }
 
-@app.get("/ready")
+@app.get("/readyz")
 def ready():
     return {
         "status": "ready",
@@ -202,12 +202,11 @@ def metrics():
 @app.get("/test_metrics")
 def test_metrics():
     REQUEST_COUNT.labels(
-        hostname=HOSTNAME,
         method="GET",
         endpoint="/test_metrics",
         status="200"
     ).inc()
-    return {"ok": True}
+    return {"ok": True, "hostname": {HOSTNAME}}
 
 
 # Exception Handler

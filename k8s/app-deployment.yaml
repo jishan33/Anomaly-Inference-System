@@ -29,7 +29,7 @@ spec:
 
           livenessProbe:
             httpGet:
-              path: /live
+              path: /livez
               port: 8000
 
             initialDelaySeconds: 10
@@ -37,7 +37,7 @@ spec:
 
           readinessProbe:
             httpGet:
-              path: /ready
+              path: /readyz
               port: 8000
 
             initialDelaySeconds: 5
