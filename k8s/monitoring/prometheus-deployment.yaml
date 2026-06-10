@@ -25,12 +25,10 @@ spec:
       containers:
         - name: prometheus
           image: prom/prometheus
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           volumeMounts:
             - mountPath: /etc/prometheus/
               name: prometheus-config
-          args:
-            - --config.file=/etc/prometheus/prometheus.yaml
           ports:
             - containerPort: 9090
               protocol: TCP

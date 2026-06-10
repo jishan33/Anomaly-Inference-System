@@ -3,25 +3,38 @@ kind: ConfigMap
 metadata:
   name: prometheus-config
 data:
-  prometheus.yaml: |
+  prometheus.yml: |
     global:
       scrape_interval: 15s
 
     scrape_configs:
-      - job_name: 'anomaly-api'
-        static_configs:
-          - targets: 
-            - anomaly-inference-service:80  
-      - job_name: 'vip-worker'
-        static_configs:
-          - targets:
-              - vip-worker:9001
-      - job_name: 'shared-worker'
-        static_configs:
-          - targets:
-              - shared-worker:9001
-              
-      - job_name: 'kube-state-metrics'
-        static_configs:
-          - targets:
-              - kube-state-metrics.kube-system.svc.cluster.local:8080
+      # Dynamic Pod Discovery for your API and Workers
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          # 1. Only scrape pods that have the annotation: prometheus.io/scrape: "true"
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+
+          # 2. Allow pods to override the default '/metrics' path using prometheus.io/path: "/custom_path"
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+
+          # 3. Allow pods to override the target port using prometheus.io/port: "9001"
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+
+          # 4. Clean up the dashboard labels by exposing the real pod name and namespace
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
