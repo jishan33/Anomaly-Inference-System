@@ -36,8 +36,6 @@ def worker_loop():
 
         if is_active_vip:
             vip_processed = process_batch(VIP_QUEUE, "vip", schedular.vip_max_batch_size, schedular.vip_max_wait_time, WORKER_ROLE)
-        elif is_active_shared and vip_depth is not None and vip_depth > 20:
-            vip_processed = process_batch(VIP_QUEUE, "vip", schedular.free_max_batch_size, schedular.vip_max_wait_time, WORKER_ROLE)
         elif is_active_shared:
             free_processed = process_batch(FREE_QUEUE, "free", schedular.free_max_batch_size, schedular.free_max_wait_time, WORKER_ROLE)
 

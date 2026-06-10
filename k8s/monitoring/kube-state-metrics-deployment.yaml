@@ -18,6 +18,10 @@ spec:
         app.kubernetes.io/component: exporter
         app.kubernetes.io/name: kube-state-metrics
         app.kubernetes.io/version: 2.19.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"    # Tells Prometheus to hit 8080 instead of the default 80
+        prometheus.io/path: "/metrics"
     spec:
       automountServiceAccountToken: true
       containers:

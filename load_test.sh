@@ -18,8 +18,8 @@ URL="http://localhost:80/predict_async"
 DURATION=300
 END_TIME=$(( $(date +%s) + DURATION ))
 
-echo "Starting burst load test. Running for 5 minutes (until $(date -d @$END_TIME +%T))..."
-echo "Sending a wave of $BATCH_SIZE parallel requests every 5 seconds..."
+echo "Starting burst load test. Running for $(DURATION) seconds (until $(date -d @$END_TIME +%T))..."
+echo "Sending a wave of $BATCH_SIZE parallel requests every 2 seconds..."
 
 # 3. Keep looping until 5 minutes pass
 while [ $(date +%s) -lt $END_TIME ]

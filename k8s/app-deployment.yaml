@@ -15,6 +15,9 @@ spec:
     metadata:
       labels:
         app: anomaly-inference-system
+      annotations:
+        prometheus.io/scrape: "true"# <--- Tells Prometheus to look at this pod
+        prometheus.io/port: "8000"      # <--- Tells Prometheus which port to scrape
 
     spec:
       containers:
@@ -29,7 +32,7 @@ spec:
 
           livenessProbe:
             httpGet:
-              path: /live
+              path: /livez
               port: 8000
 
             initialDelaySeconds: 10
@@ -37,7 +40,7 @@ spec:
 
           readinessProbe:
             httpGet:
-              path: /ready
+              path: /readyz
               port: 8000
 
             initialDelaySeconds: 5
