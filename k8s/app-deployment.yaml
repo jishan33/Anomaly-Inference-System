@@ -35,8 +35,10 @@ spec:
               path: /livez
               port: 8000
 
-            initialDelaySeconds: 10
+            initialDelaySeconds: 15
             periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
 
           readinessProbe:
             httpGet:
@@ -44,7 +46,10 @@ spec:
               port: 8000
 
             initialDelaySeconds: 5
-            periodSeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2       # Timeout must ALWAYS be less than the period
+            successThreshold: 1     # Must pass once to be considered ready
+            failureThreshold: 3     # 3 strikes (30 seconds total) before pulling it from the load balancer
 
           resources:
             requests:
