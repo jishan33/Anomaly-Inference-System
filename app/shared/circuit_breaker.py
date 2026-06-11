@@ -28,18 +28,18 @@ class CircuitBreakerExecutionError(CircuitBreakerError):
 
 # Core idea
 
-# CLOSED:
+# CLOSED (0):
 #     allow requests
 #     count failures
 #
 #     if too many failures → OPEN
 #
-# OPEN:
+# OPEN (1):
 #     reject immediately
 #
 #     after timeout → HALF_OPEN
 #
-# HALF_OPEN:
+# HALF_OPEN (2):
 #     allow 1 test request
 #
 #     if success → CLOSED
