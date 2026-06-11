@@ -13,6 +13,9 @@ data:
         kubernetes_sd_configs:
           - role: pod
         relabel_configs:
+          -  action: labelmap
+             regex: __meta_kubernetes_pod_label_(.+)
+             
           # 1. Only scrape pods that have the annotation: prometheus.io/scrape: "true"
           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
             action: keep
