@@ -1,8 +1,14 @@
+import json
+import logging
+import pickle
+from pathlib import Path
 from typing import NamedTuple
 from sklearn.ensemble import IsolationForest
 from pydantic import BaseModel, Field
 
 from app.inference.features import Features
+
+logger = logging.getLogger(__name__)
 
 class PredictionResult(NamedTuple):
     is_anomaly: bool

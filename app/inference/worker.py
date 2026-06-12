@@ -23,7 +23,6 @@ def worker_loop():
     while True:
         schedular =  get_batch_scheduler()
 
-        vip_depth: int|None = get_queue_depth(VIP_QUEUE)
         vip_processed = False
         free_processed = False
 

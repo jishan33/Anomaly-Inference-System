@@ -82,7 +82,7 @@ def process_batch(queue_name: str, tier: str, max_batch_size: int, max_wait_time
     else:
         return False
 
-
+    # if batch is empty return false
     if not batch:
         return False
 
