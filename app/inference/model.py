@@ -36,6 +36,17 @@ class Model:
             tier=features.tier
         )
 
+    @staticmethod
+    def load_model_metadata():
+        file_path = Path("models/anomaly-detector/v1/metadata.json")
+        try:
+            with open(file_path, "r") as file:
+                data = json.load(file)
+                return data
+        except Exception as e:
+            logger.error(f"Error: {e}")
+            return None
+
 class PredictRequest(BaseModel):
     customer_token:str
     amount: float = Field(...,gt=0)

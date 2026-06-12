@@ -3,7 +3,7 @@ import json
 from fastapi import APIRouter, HTTPException
 
 from app.shared.redis import redis_client
-from app.inference.model import PredictRequest
+from app.inference.model import PredictRequest, model_instance
 from app.inference.queue_service import enqueue_job
 from app.shared.redis import redis_circuit_breaker
 
@@ -48,3 +48,17 @@ async def get_result(job_id:str):
         return {"status": "processing"}
 
     return json.loads(result)
+
+@router.get("/model_metadata")
+async def get_model_metadata():
+    try:
+        result = model_instance.load_model_metadata()
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail= "model metadata is unavailable"
+        )
+
+    if not result:
+        return {"unavailable"}
+    return result
