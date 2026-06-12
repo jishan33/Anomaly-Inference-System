@@ -1,14 +1,17 @@
 import json
 import logging
 import pickle
+import time
 from pathlib import Path
 from typing import NamedTuple
 from sklearn.ensemble import IsolationForest
 from pydantic import BaseModel, Field
 
 from app.inference.features import Features
+from app.shared.model_metrics import MODEL_LOAD_TIME
 
 logger = logging.getLogger(__name__)
+MODEL_DIR = Path("models/anomaly-detector/v1")
 
 class PredictionResult(NamedTuple):
     is_anomaly: bool
@@ -20,12 +23,24 @@ class Model:
         self.model = None
 
     def load(self):
-        model_path = Path("models/anomaly-detector/v1/model.pkl")
+        start = time.time()
+
+        metadata = self.load_model_metadata()
+
+        model_path = MODEL_DIR/"model.pkl"
         with open(model_path, "rb") as f:
             self.model = pickle.load(f)
 
+        duration = time.time() - start
+        MODEL_LOAD_TIME.labels(
+            model_name = metadata["model_name"],
+            model_version = metadata["model_version"],
+            model_runtime = metadata["model_runtime"]
+        ).observe(duration)
+
+        logger.info(f"model metadata: {metadata}")
+
     def predict(self, features: Features) -> PredictionResult:
-        """Return anomaly score + label"""
         feature_vector = [[features.amount]]
         prediction = self.model.predict(feature_vector)[0]
         score = self.model.decision_function(feature_vector)[0]
@@ -38,13 +53,13 @@ class Model:
 
     @staticmethod
     def load_model_metadata():
-        file_path = Path("models/anomaly-detector/v1/metadata.json")
+        file_path = MODEL_DIR/"metadata.json"
         try:
             with open(file_path, "r") as file:
                 data = json.load(file)
                 return data
         except Exception as e:
-            logger.error(f"Error: {e}")
+            logger.error(f"Error loading {file_path}, details: {e}")
             return None
 
 class PredictRequest(BaseModel):
