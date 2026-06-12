@@ -21,11 +21,12 @@ class PredictionResult(NamedTuple):
 class Model:
     def __init__(self):
         self.model = None
+        self.metadata = None
 
     def load(self):
         start = time.time()
 
-        metadata = self.load_model_metadata()
+        self.metadata = self.load_model_metadata()
 
         model_path = MODEL_DIR/"model.pkl"
         with open(model_path, "rb") as f:
@@ -33,12 +34,12 @@ class Model:
 
         duration = time.time() - start
         MODEL_LOAD_TIME.labels(
-            model_name = metadata["model_name"],
-            model_version = metadata["model_version"],
-            model_runtime = metadata["model_runtime"]
+            model_name = self.metadata["model_name"],
+            model_version = self.metadata["model_version"],
+            model_runtime = self.metadata["model_runtime"]
         ).observe(duration)
 
-        logger.info(f"model metadata: {metadata}")
+        logger.info(f"model metadata: {self.metadata}")
 
     def predict(self, features: Features) -> PredictionResult:
         feature_vector = [[features.amount]]

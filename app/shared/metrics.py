@@ -59,17 +59,6 @@ RETRY_COUNT = Counter(
     ["operation"]
 )
 
-# inference
-INFERENCE_LATENCY = Histogram(
-    "fastapi_model_latency_seconds",
-    "Model latency in seconds"
-)
-
-INFERENCE_PREDICTIONS = Counter(
-    "model_predictions_total",
-    "Total number of model predictions",
-    ["result"]
-)
 
 # Queue depth
 QUEUE_DEPTH = Gauge(
