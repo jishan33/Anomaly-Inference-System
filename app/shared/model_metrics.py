@@ -18,3 +18,9 @@ MODEL_INFERENCE_REQUESTS = Counter(
     "Total model inference requests",
     ["model_name", "model_version", "model_runtime", "tier", "result"],
 )
+
+MODEL_BATCH_SIZE = Histogram(
+    "model_batch_size",
+    "Number of requests processed per inference batch",
+    ["model_name", "model_version", "model_runtime", "tier"],
+)
