@@ -4,7 +4,7 @@ import time
 from typing import List
 
 from app.inference.model import model_instance
-from app.shared.model_metrics import MODEL_BATCH_SIZE
+from app.shared.metrics import MODEL_BATCH_SIZE
 from app.shared.redis import redis_client
 from app.inference.config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob
 from app.inference.inference import run_inference

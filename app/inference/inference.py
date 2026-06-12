@@ -4,7 +4,7 @@ from importlib.metadata import metadata
 
 from .features import extract_features
 from .model import model_instance, PredictionResult
-from app.shared.model_metrics import MODEL_INFERENCE_LATENCY, MODEL_INFERENCE_REQUESTS
+from app.shared.metrics import MODEL_INFERENCE_LATENCY, MODEL_INFERENCE_REQUESTS
 
 
 def run_inference(transactions:list[dict]) -> list[PredictionResult]:

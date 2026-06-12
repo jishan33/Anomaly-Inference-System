@@ -4,11 +4,10 @@ import pickle
 import time
 from pathlib import Path
 from typing import NamedTuple
-from sklearn.ensemble import IsolationForest
 from pydantic import BaseModel, Field
 
 from app.inference.features import Features
-from app.shared.model_metrics import MODEL_LOAD_TIME
+from app.shared.metrics import MODEL_LOAD_TIME
 
 logger = logging.getLogger(__name__)
 MODEL_DIR = Path("models/anomaly-detector/v1")
