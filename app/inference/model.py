@@ -1,8 +1,14 @@
+import json
+import logging
+import pickle
+from pathlib import Path
 from typing import NamedTuple
 from sklearn.ensemble import IsolationForest
 from pydantic import BaseModel, Field
 
 from app.inference.features import Features
+
+logger = logging.getLogger(__name__)
 
 class PredictionResult(NamedTuple):
     is_anomaly: bool
@@ -14,15 +20,9 @@ class Model:
         self.model = None
 
     def load(self):
-        """Load or initialize model"""
-        self.model = IsolationForest(
-            contamination=0.1,
-            random_state=42
-        )
-
-        # Fake training data (for now)
-        data = [[10], [20], [30],[40], [50]]
-        self.model.fit(data)
+        model_path = Path("models/anomaly-detector/v1/model.pkl")
+        with open(model_path, "rb") as f:
+            self.model = pickle.load(f)
 
     def predict(self, features: Features) -> PredictionResult:
         """Return anomaly score + label"""
