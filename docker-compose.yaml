@@ -1,23 +1,9 @@
 name: anomaly-inference-system
 services:
 
-  redis_sync:
+  redis:
     image: redis:7-alpine
-    container_name: redis_sync
-    ports:
-      - "6380:6379"
-    restart: unless-stopped
-    networks:
-      - appnet
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-
-  redis_inference:
-    image: redis:7-alpine
-    container_name: redis_inference
+    container_name: redis
     ports:
       - "6379:6379"
     restart: unless-stopped
@@ -29,103 +15,27 @@ services:
       timeout: 3s
       retries: 5
 
-  vip_worker1:
+  vip_worker:
     build: .
     # command: what process the container should run when it starts
     command: python3 -m app.inference.worker
-    container_name: vip_worker1
+    container_name: vip_worker
     environment:
       - WORKER_ROLE=vip
-      - WORKER_ID=1
-      - REDIS_INFERENCE_HOST=redis-inference
-      - REDIS_INFERENCE_PORT=6379
     depends_on:
-      - redis_inference
+      - redis
     networks:
       - appnet
     restart: unless-stopped
 
-  vip_worker2:
+  shared_worker:
     build: .
     command: python3 -m app.inference.worker
-    container_name: vip_worker2
-    environment:
-      - WORKER_ROLE=vip
-      - WORKER_ID=2
-      - REDIS_INFERENCE_HOST=redis-inference
-      - REDIS_INFERENCE_PORT=6379
-    depends_on:
-      - redis_inference
-    networks:
-      - appnet
-    restart: unless-stopped
-
-  vip_worker3:
-    build: .
-    # command: what process the container should run when it starts
-    command: python3 -m app.inference.worker
-    container_name: vip_worker3
-    environment:
-      - WORKER_ROLE=vip
-      - WORKER_ID=3
-      - REDIS_INFERENCE_HOST=redis-inference
-      - REDIS_INFERENCE_PORT=6379
-    depends_on:
-      - redis_inference
-    networks:
-      - appnet
-    restart: unless-stopped
-
-  shared_worker1:
-    build: .
-    command: python3 -m app.inference.worker
-    container_name: shared_worker1
+    container_name: shared_worker
     environment:
       - WORKER_ROLE=shared
-      - WORKER_ID=1
-      - REDIS_INFERENCE_HOST=redis-inference
-      - REDIS_INFERENCE_PORT=6379
     depends_on:
-      - redis_inference
-    networks:
-      - appnet
-    restart: unless-stopped
-
-  shared_worker2:
-    build: .
-    command: python3 -m app.inference.worker
-    container_name: shared_worker2
-    environment:
-      - WORKER_ROLE=shared
-      - WORKER_ID=2
-      - REDIS_INFERENCE_HOST=redis-inference
-      - REDIS_INFERENCE_PORT=6379
-    depends_on:
-      - redis_inference
-    networks:
-      - appnet
-    restart: unless-stopped
-
-  shared_worker3:
-    build: .
-    command: python3 -m app.inference.worker
-    container_name: shared_worker3
-    environment:
-      - WORKER_ROLE=shared
-      - WORKER_ID=3
-      - REDIS_INFERENCE_HOST=redis-inference
-      - REDIS_INFERENCE_PORT=6379
-    depends_on:
-      - redis_inference
-    networks:
-      - appnet
-    restart: unless-stopped
-
-  autoscaler:
-    build: .
-    command: python3 -m app.inference.run_autoscaler
-    depends_on:
-      - redis_inference
+      - redis
     networks:
       - appnet
     restart: unless-stopped
@@ -139,12 +49,10 @@ services:
     environment:
       - INSTANCE_ID=app1
       - LOG_FORMAT=pretty
-      - REDIS_SYNC_HOST=redis_sync
-      - REDIS_SYNC_PORT=6379
     networks:
       - appnet
     depends_on:
-      - redis_sync
+      - redis
     # volumes: mount host machine directory into container filesystem
     volumes:
       - .:/app
@@ -157,12 +65,10 @@ services:
     environment:
       - INSTANCE_ID=app2
       - LOG_FORMAT=pretty
-      - REDIS_SYNC_HOST=redis_sync
-      - REDIS_SYNC_PORT=6379
     networks:
       - appnet
     depends_on:
-      - redis_sync
+      - redis
     volumes:
       - .:/app
 
@@ -174,12 +80,10 @@ services:
     environment:
       - INSTANCE_ID=app3
       - LOG_FORMAT=pretty
-      - REDIS_SYNC_HOST=redis_sync
-      - REDIS_SYNC_PORT=6379
     networks:
       - appnet
     depends_on:
-      - redis_sync
+      - redis
     volumes:
       - .:/app
 
