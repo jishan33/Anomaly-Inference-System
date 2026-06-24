@@ -3,7 +3,7 @@ from pathlib import Path
 from sklearn.ensemble import IsolationForest
 
 MODEL_DIR = Path("models/anomaly-detector/v1")
-MODEL_PATH = MODEL_DIR / "model.pkl"
+MODEL_PATH = MODEL_DIR/"model.pkl"
 
 model = IsolationForest(
     contamination=0.1,
@@ -20,7 +20,7 @@ if MODEL_PATH.exists():
         "Clean it up or change the version name."
     )
 else:
-    with open(MODEL_DIR / "model.pkl", "wb") as f:
+    with open(MODEL_DIR/"model.pkl", "wb") as f:
         pickle.dump(model, f)
 
     print("Model saved successfully")

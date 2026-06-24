@@ -1,36 +1,50 @@
+import logging
 
-import time
-from importlib.metadata import metadata
-
+import numpy as np
+import tritonclient.http as httpclient
 from .features import extract_features
-from .model import model_instance, PredictionResult
-from app.shared.metrics import MODEL_INFERENCE_LATENCY, MODEL_INFERENCE_REQUESTS
+from .model import PredictionResult
 
+logger = logging.getLogger(__name__)
 
 def run_inference(transactions:list[dict]) -> list[PredictionResult]:
+    # POST http://localhost:8001/v2/models/anomaly_detector/infer
+    triton_client = httpclient.InferenceServerClient(url="host.docker.internal:8001")
+    logger.info(f"triton_client: {triton_client}")
+    input_data = np.array([5000], dtype=np.float32)
+    inputs = [
+        httpclient.InferInput(name="INPUT", shape=input_data.shape, datatype="FP32")
+    ]
+
+    outputs = [
+        httpclient.InferRequestedOutput("OUTPUT")
+    ]
     results = []
-    for transaction in transactions:
-        request_start = time.time()
+    try:
+        for transaction in transactions:
+            features = extract_features(transaction)
 
-        features = extract_features(transaction)
-        result = model_instance.predict(features)
+            raw_data = np.array([features.amount], dtype=np.float32)
+            inputs[0].set_data_from_numpy(raw_data)
+            logger.info(f"inputs[0]: {inputs[0]}")
 
-        duration = time.time() - request_start
-        MODEL_INFERENCE_LATENCY.labels(
-            model_name = model_instance.metadata["model_name"],
-            model_version = model_instance.metadata["model_version"],
-            model_runtime = model_instance.metadata["model_runtime"],
-            tier = result.tier
-        ).observe(duration)
+            response = triton_client.infer(
+                model_name="anomaly_detector",
+                inputs= inputs,
+                outputs= outputs
+            )
+            is_anomaly = response.as_numpy("OUTPUT")
+            logger.info(f"is_anomaly: {is_anomaly}")
 
-        MODEL_INFERENCE_REQUESTS.labels(
-            model_name = model_instance.metadata["model_name"],
-            model_version = model_instance.metadata["model_version"],
-            model_runtime = model_instance.metadata["model_runtime"],
-            result="anomaly" if result.is_anomaly else "normal",
-            tier = result.tier
-        ).inc()
+            result = PredictionResult(
+                is_anomaly= bool(is_anomaly[0] == 1),
+                score=0,
+                tier=features.tier
 
-        results.append(result)
+            )
+            results.append(result)
+
+    except Exception as e:
+        logger.error(f" Inference Exception: {e}")
 
     return results

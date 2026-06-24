@@ -9,6 +9,7 @@ WORKDIR /app
 # install system deps (if needed)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # copy requirements (we'll create this next) \
