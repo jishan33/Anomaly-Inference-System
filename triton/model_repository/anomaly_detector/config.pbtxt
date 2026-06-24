@@ -1,14 +1,13 @@
 name: "anomaly_detector"
-
 backend: "python"
 
-max_batch_size: 0
+max_batch_size: 0    # Enables Triton's Dynamic Batching
 
 input [
   {
     name: "INPUT"
     data_type: TYPE_FP32
-    dims: [1]
+    dims: [1]  # The shape of a SINGLE request
   }
 ]
 

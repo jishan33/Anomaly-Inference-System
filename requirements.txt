@@ -4,4 +4,6 @@ faker
 pydantic
 redis
 prometheus_client
-scikit-learn==1.9.0
+scikit-learn==1.8.0
+tritonclient[http]
+numpy==1.26.4

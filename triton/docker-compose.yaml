@@ -1,6 +1,9 @@
 services:
   triton:
-    image: nvcr.io/nvidia/tritonserver:24.05-py3
+
+    build:
+      context: .
+
     container_name: triton-server
     ports:
       - "8001:8000"
