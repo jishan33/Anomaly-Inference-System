@@ -6,7 +6,6 @@ from prometheus_client import start_http_server
 from app.inference.batch import process_batch
 from app.inference.model import model_instance
 from app.inference.config import FREE_QUEUE, VIP_QUEUE
-from app.inference.queue_service import get_queue_depth
 from app.inference.scheduler import get_batch_scheduler
 
 logger = logging.getLogger("worker")
