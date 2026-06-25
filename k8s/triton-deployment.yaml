@@ -1,0 +1,86 @@
+#                  Triton Pod
+#
+#+--------------------------------------------------+
+#|               triton-triton:latest               |
+#|                                                  |
+#|  Python                                          |
+#|  Triton                                          |
+#|  joblib                                          |
+#|  numpy                                           |
+#|  scikit-learn                                    |
+#|                                                  |
+#|  tritonserver --model-repository=/models         |
+#|                                                  |
+#|                ▲                                 |
+#|                │                                 |
+#|     hostPath mounted to /models                  |
+#|                │                                 |
+#|                ▼                                 |
+#|  anomaly_detector/                               |
+#|    ├── config.pbtxt                              |
+#|    ├── model.py                                  |
+#|    └── model.pkl                                 |
+#+--------------------------------------------------+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: triton
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: triton
+
+  template:
+    metadata:
+      labels:
+        app: triton
+
+    spec:
+      volumes:
+        - name: model-repository
+          hostPath:
+            path: /Users/jishan/Jishan/Development/Anomaly-Inference-System/triton/model_repository
+            type: Directory
+      containers:
+        - name: triton
+          image: triton-triton:latest
+          imagePullPolicy: Never
+          volumeMounts:
+            - name: model-repository
+              mountPath: /models
+
+
+          ports:
+            - containerPort: 8000 # HTTP
+            - containerPort: 8001 # gRPC
+            - containerPort: 8002 # Metrics
+
+          livenessProbe:
+            httpGet:
+              path: /v2/health/live
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+          readinessProbe:
+            httpGet:
+              path: /v2/health/ready
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+
+        limits:
+          cpu: "2"
+          memory: "4Gi"
+
+

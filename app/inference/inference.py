@@ -8,8 +8,7 @@ from .model import PredictionResult
 logger = logging.getLogger(__name__)
 
 def run_inference(transactions:list[dict]) -> list[PredictionResult]:
-    # POST http://localhost:8001/v2/models/anomaly_detector/infer
-    triton_client = httpclient.InferenceServerClient(url="host.docker.internal:8001")
+    triton_client = httpclient.InferenceServerClient(url="triton:8000")
     logger.info(f"triton_client: {triton_client}")
     input_data = np.array([5000], dtype=np.float32)
     inputs = [
