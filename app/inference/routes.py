@@ -49,10 +49,10 @@ async def get_result(job_id:str):
 
     return json.loads(result)
 
-@router.get("/model_metadata")
+@router.get("/training_model_metadata")
 async def get_model_metadata():
     try:
-        result = model_instance.load_model_metadata()
+        result = model_instance.get_model_metadata()
     except Exception:
         raise HTTPException(
             status_code=500,

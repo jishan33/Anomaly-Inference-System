@@ -3,8 +3,6 @@ import logging
 import time
 from typing import List
 
-from app.inference.model import model_instance
-from app.shared.metrics import MODEL_BATCH_SIZE
 from app.shared.redis import redis_client
 from app.inference.config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob
 from app.inference.inference import run_inference
@@ -89,13 +87,6 @@ def process_batch(queue_name: str, tier: str, max_batch_size: int, max_wait_time
         return False
 
     num_of_jobs = len(batch)
-    MODEL_BATCH_SIZE.labels(
-        model_name = model_instance.metadata["model_name"],
-        model_version = model_instance.metadata["model_version"],
-        model_runtime = model_instance.metadata["model_runtime"],
-        tier = tier
-    ).observe(num_of_jobs)
-
     logger.info(f"Executing {tier}_batch size {num_of_jobs}")
 
     # Track queue wait times for all items in the batch

@@ -2,7 +2,6 @@ import logging
 import random
 import socket
 import traceback
-from contextlib import asynccontextmanager
 from typing import List
 from fastapi import FastAPI
 from fastapi import HTTPException, Request, Response
@@ -25,15 +24,8 @@ from app.shared.redis import redis_client
 setup_logging()
 logger = logging.getLogger(__name__)
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Load the model and share it via app.state    model_instance.load()
-    yield {"model": model_instance}
-    # Clean up on shutdown if needed
-
 app = FastAPI(
     middleware=[Middleware(RequestLoggingMiddleware)],
-    lifespan=lifespan
 )
 
 HOSTNAME = socket.gethostname()
