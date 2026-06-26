@@ -2,7 +2,6 @@ import logging
 import random
 import socket
 import traceback
-from contextlib import asynccontextmanager
 from typing import List
 from fastapi import FastAPI
 from fastapi import HTTPException, Request, Response
@@ -12,9 +11,8 @@ from fastapi.responses import JSONResponse
 from prometheus_client import generate_latest
 
 from app.api.anomaly_detect import anomaly_score, anomaly_volume_score, anomaly_customer_transaction_volume_score
-from app.inference.model import model_instance
 from app.inference.routes import router
-from app.api.config import setup_logging
+from app.shared.config import setup_logging
 from app.shared.metrics import ANOMALY_COUNT, USER_RATE_LIMIT, REQUEST_COUNT
 from app.api.request_logging_middleware import RequestLoggingMiddleware
 from app.api.transaction_store import Transaction, append_to_redis, safe_get_customer_transaction_volume, \
@@ -26,15 +24,8 @@ from app.shared.redis import redis_client
 setup_logging()
 logger = logging.getLogger(__name__)
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Load the model and share it via app.state    model_instance.load()
-    yield {"model": model_instance}
-    # Clean up on shutdown if needed
-
 app = FastAPI(
     middleware=[Middleware(RequestLoggingMiddleware)],
-    lifespan=lifespan
 )
 
 HOSTNAME = socket.gethostname()

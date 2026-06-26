@@ -170,20 +170,22 @@ MODEL_LOAD_TIME = Histogram(
 )
 
 
-MODEL_INFERENCE_LATENCY = Histogram(
-    "model_inference_latency_seconds",
-    "Model Inference latency",
-    ["model_name", "model_version", "model_runtime", "tier"],
+# Triton Inference Server Client
+
+WORKER_TRITON_REQUEST_LATENCY_SECONDS = Histogram(
+    "worker_triton_request_latency_seconds",
+    "Time spent on Triton Inference anomaly detection",
+    ["model_name", "model_version","tier"]
 )
 
-MODEL_INFERENCE_REQUESTS = Counter(
-    "model_inference_requests_total",
-    "Total model inference requests",
-    ["model_name", "model_version", "model_runtime", "tier", "result"],
+WORKER_TRITON_SERIALIZATION_SECONDS = Histogram(
+    "worker_triton_serialization_seconds",
+    "Time spent on Triton request serialization",
+    ["model_name", "model_version","tier"]
 )
 
-MODEL_BATCH_SIZE = Histogram(
-    "model_batch_size",
-    "Number of requests processed per inference batch",
-    ["model_name", "model_version", "model_runtime", "tier"],
+WORKER_TRITON_DESERIALIZATION_SECONDS = Histogram(
+    "worker_triton_deserialization_seconds",
+    "Time spent on Triton response deserialization",
+    ["model_name", "model_version","tier"]
 )

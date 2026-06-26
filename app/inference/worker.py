@@ -1,24 +1,35 @@
+import json
 import logging
 import os
 import time
-from prometheus_client import start_http_server
+import tritonclient.http as httpclient
 
 from app.inference.batch import process_batch
-from app.inference.model import model_instance
 from app.inference.config import FREE_QUEUE, VIP_QUEUE
 from app.inference.scheduler import get_batch_scheduler
+from app.shared.config import setup_logging
+from app.shared.redis import redis_client
+from prometheus_client import start_http_server
 
 logger = logging.getLogger("worker")
 logger.info("worker.py loaded")
 
 WORKER_ROLE = os.getenv("WORKER_ROLE", "unknown")
+TRITON_MODEL_NAME = os.getenv("TRITON_MODEL_NAME", "unknown")
 
-start_http_server(9001)
+def get_model_metadata():
+    triton_client = httpclient.InferenceServerClient(url="triton:8000")
+    metadata: dict = triton_client.get_model_metadata("anomaly_detector")
+    model_metadata = {
+        "name": metadata.get("name", "unknown"),
+        "version": (metadata.get('versions') or ['unknown'])[0]
+    }
 
-model_instance.load()
+    redis_client.set("model_metadata", json.dumps(model_metadata))
 
 def worker_loop():
     logger.info("Worker loop started...")
+
     while True:
         schedular =  get_batch_scheduler()
 
@@ -53,4 +64,7 @@ def worker_loop():
 # It sets:  __name__==__main__
 #------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
+    setup_logging()
+    start_http_server(9001)
+    get_model_metadata()
     worker_loop()
