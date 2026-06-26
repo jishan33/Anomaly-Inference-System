@@ -9,4 +9,5 @@ data:
   REDIS_HOST: "redis"
   REDIS_PORT: "6379"
 
+  TRITON_MODEL_NAME: anomaly_detector
   LOG_LEVEL: "INFO"
