@@ -1,4 +1,4 @@
-from app.api import config
+from app.shared import config
 from app.api.transaction_store import Transaction
 
 # ------------------------

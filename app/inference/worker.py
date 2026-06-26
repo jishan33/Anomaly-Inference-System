@@ -53,4 +53,7 @@ def worker_loop():
 # It sets:  __name__==__main__
 #------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
+    setup_logging()
+    start_http_server(9001)
+    get_model_metadata()
     worker_loop()
