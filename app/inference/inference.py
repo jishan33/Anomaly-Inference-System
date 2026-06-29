@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def run_inference(transactions:list[dict]) -> list[PredictionResult]:
     triton_client = httpclient.InferenceServerClient(url="triton:8000")
-    input_data = np.array([5000], dtype=np.float32)
+    input_data = np.array([[5000]], dtype=np.float32)
     inputs = [
         httpclient.InferInput(name="INPUT", shape=input_data.shape, datatype="FP32")
     ]
@@ -32,9 +32,11 @@ def run_inference(transactions:list[dict]) -> list[PredictionResult]:
             # prepare numpy arrays
             serialize_start = time.perf_counter()
             features = extract_features(transaction)
-            raw_data = np.array([features.amount], dtype=np.float32)
+            raw_data = np.array([[features.amount]], dtype=np.float32) # Shape: (1,)
+
             inputs[0].set_data_from_numpy(raw_data)
             logger.info(f"inputs[0]: {inputs[0]}")
+
             serialize_end = time.perf_counter()
 
             WORKER_TRITON_SERIALIZATION_SECONDS.labels(
