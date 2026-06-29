@@ -734,6 +734,43 @@ README.md
 ```
 
 ---
+## Dynamic Batching 
+The inference platform combines batching at two different layers.
+
+### Application-level batching
+The worker maintains its own batching mechanism to implement platform-specific traffic policies:
+
+- VIP vs Free-tier scheduling 
+- QoS enforcement
+- Configurable batch size and wait time per tier 
+- Fairness and admission control
+
+This layer determines **which requests should be served together**.
+
+### Triton Dynamic Batching 
+Triton performs a second layer of batching immediately before model execution.
+Its responsibility is to optimize serving efficiency by:
+
+- Combine concurrent inference requests
+- Reducing model execution overhead
+- Increasing execution throughput
+- Improving hardware utilization
+
+This layer determines **how requests are executed efficiently**.
+
+### Experimental Results
+
+Compared with the non-batching baselines:
+
+- Triton queue ration reduces by approximately **30%**
+- Backend model executions reduces by approximately **3x**
+- Request throughput decreased only slightly (~32 req/s)
+- Average request and compute latencies increased slightly due to batching window
+
+The results demonstrate the expected trade-off: dynamic batching significantly improves serving efficiency by reducing execution
+overhead while introducing only a small increase in latency. 
+
+
 
 # 🚀 Author
 
