@@ -1,7 +1,12 @@
 name: "anomaly_detector"
 backend: "python"
 
-max_batch_size: 0    # Enables Triton's Dynamic Batching
+max_batch_size: 8    # Enables Triton's Dynamic Batching
+
+dynamic_batching {
+    preferred_batch_size: [4, 8]
+    max_queue_delay_microseconds: 5000
+}
 
 input [
   {

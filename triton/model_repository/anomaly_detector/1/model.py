@@ -33,7 +33,7 @@ class TritonPythonModel:
 
             values = input_tensor.as_numpy()
             # numerical python, -> array([[amount]], dtype=float32)
-            values = values.reshape(-1, 1)
+
             pb_utils.Logger.log_info(
                 f"value {values}"
                 f"value shape={values.shape}"
