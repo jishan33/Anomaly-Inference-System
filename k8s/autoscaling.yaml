@@ -1,4 +1,24 @@
 apiVersion: autoscaling/v2
+# HorizontalPodAutoscaler
+#        │
+#        ▼
+# Reads metrics every sync period
+#        │
+#        ▼
+# Compares current metric vs target metric
+#        │
+#        ▼
+# Calculates desired replica count
+#        │
+#        ▼
+# Updates Deployment replica count
+#        │
+#        ▼
+# ReplicaSet creates/removes Pods
+#
+# The HPA controller runs inside the Kubernetes control plane and periodically adjusts a scalable workload
+# such as a Deployment. The default sync period is commonly 15 seconds.
+# desiredReplicas = ceil * (currentReplicas * currentMetricValue / desiredMetricValue)
 
 kind: HorizontalPodAutoscaler
 

@@ -770,6 +770,24 @@ Compared with the non-batching baselines:
 The results demonstrate the expected trade-off: dynamic batching significantly improves serving efficiency by reducing execution
 overhead while introducing only a small increase in latency. 
 
+## Inference-Aware Autoscaling Strategy
+
+Scale workers when:
+- Redis queue depth grows
+- Worker processing latency increases
+- Worker CPU is saturated
+- Triton latency remains healthy
+
+Scale Triton when:
+- Triton queue latency increases
+- Triton request latency increases
+- Triton CPU/GPU is saturated
+- Worker queue is not the main bottleneck
+
+Do not scale blindly when:
+- CPU is high but latency and queue depth are healthy
+- Model execution latency is high but queue latency is low
+- Dynamic batching improves execution count but worsens request latency too much
 
 
 # 🚀 Author
