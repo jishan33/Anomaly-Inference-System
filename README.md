@@ -770,25 +770,69 @@ Compared with the non-batching baselines:
 The results demonstrate the expected trade-off: dynamic batching significantly improves serving efficiency by reducing execution
 overhead while introducing only a small increase in latency. 
 
-## Inference-Aware Autoscaling Strategy
+## KEDA Multi-Signal Inference-Aware Autoscaling
 
-Scale workers when:
-- Redis queue depth grows
-- Worker processing latency increases
-- Worker CPU is saturated
-- Triton latency remains healthy
+This system uses separate autoscaling control loops for the worker and Triton deployments because they represent different stages of the inference pipeline and become bottlenecks under different conditions.
 
-Scale Triton when:
-- Triton queue latency increases
-- Triton request latency increases
-- Triton CPU/GPU is saturated
-- Worker queue is not the main bottleneck
+### Shared Worker Autoscaling
 
-Do not scale blindly when:
-- CPU is high but latency and queue depth are healthy
-- Model execution latency is high but queue latency is low
-- Dynamic batching improves execution count but worsens request latency too much
+The shared worker deployment uses multiple autoscaling signals:
 
+* Redis queue depth
+* Worker processing latency
+* CPU utilization
+
+Each signal provides different information about the health of the worker tier.
+
+**Redis queue depth** directly measures the backlog of unprocessed inference requests.
+
+```text
+Redis queue depth increases
+        ↓
+Workers cannot dequeue jobs fast enough
+        ↓
+Scale worker replicas
+```
+
+**Worker processing latency** indicates how long workers spend processing requests. An increase in processing latency suggests the worker tier is approaching saturation.
+
+**CPU utilization** provides additional confirmation that workers are actively consuming compute resources and helps distinguish sustained resource pressure from temporary traffic bursts.
+
+Using multiple signals provides a more robust scaling strategy than relying on a single metric. Queue depth reflects demand, processing latency reflects service performance, and CPU utilization reflects resource consumption.
+
+### Triton Autoscaling
+
+The Triton deployment also uses multiple inference-aware signals:
+
+* Triton queue latency
+* Triton request latency
+* CPU utilization
+
+**Triton queue latency** measures how long inference requests wait before execution. Increasing queue latency indicates that incoming requests are arriving faster than Triton can schedule them.
+
+```text
+Triton queue latency increases
+        ↓
+Inference server becomes saturated
+        ↓
+Scale Triton replicas
+```
+
+**Triton request latency** measures end-to-end request processing within Triton and helps identify degradation in overall serving performance.
+
+**CPU utilization** indicates whether Triton's serving resources are becoming saturated and provides an additional scaling signal during sustained workloads.
+
+### Trade-offs
+
+The worker and Triton deployments are scaled independently because they serve different responsibilities within the inference pipeline.
+
+Worker autoscaling increases the system's ability to dequeue, preprocess, and dispatch inference requests.
+
+Triton autoscaling increases the system's model serving capacity.
+
+Scaling only the worker tier can overload Triton if the inference server is already saturated. Conversely, scaling Triton alone may leave additional inference capacity underutilized if workers cannot dispatch requests quickly enough.
+
+A production AI inference platform should identify where latency is accumulating and scale the constrained stage of the pipeline rather than applying uniform scaling across all components. This inference-aware strategy improves resource utilization while maintaining predictable latency under varying workloads.
 
 # 🚀 Author
 
