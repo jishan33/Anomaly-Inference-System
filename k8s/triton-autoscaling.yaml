@@ -1,0 +1,45 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: triton-scaledobject
+
+spec:
+  scaleTargetRef:
+    name: triton
+
+  minReplicaCount: 1
+  maxReplicaCount: 3
+
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-service.default.svc.cluster.local:9090
+        metricName: triton_queue_latency_ms
+        query: |
+          (
+            sum(rate(nv_inference_queue_duration_us{model="anomaly_detector"}[5m]))
+            /
+            clamp_min(sum(rate(nv_inference_request_success{model="anomaly_detector"}[5m])), 1)
+          )
+          /
+          1000
+        threshold: "200"
+
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-service.default.svc.cluster.local:9090
+        metricName: triton_request_latency_ms
+        query: |
+          (
+            sum(rate(nv_inference_request_duration_us{model="anomaly_detector"}[5m]))
+            /
+            clamp_min(sum(rate(nv_inference_request_success{model="anomaly_detector"}[5m])), 1)
+          )
+          /
+          1000
+        threshold: "500"
+
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "70"

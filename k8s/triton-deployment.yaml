@@ -57,7 +57,6 @@ spec:
             - name: model-repository
               mountPath: /models
 
-
           ports:
             - containerPort: 8000 # HTTP
             - containerPort: 8001 # gRPC
@@ -77,14 +76,13 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 5
 
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
 
-      resources:
-        requests:
-          cpu: "500m"
-          memory: "1Gi"
-
-        limits:
-          cpu: "2"
-          memory: "4Gi"
+            limits:
+              cpu: "2"
+              memory: "4Gi"
 
 
