@@ -16,3 +16,14 @@ spec:
         address: redis.default.svc.cluster.local:6379
         listName: free_jobs
         listLength: "20"
+
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-service.default.svc.cluster.local:9090
+        metricName: worker_processing_latency_p95
+        query: |
+          histogram_quantile(
+            0.95,
+            sum(rate(worker_processing_latency_seconds_bucket[5m])) by (le)
+          )
+        threshold: "0.9"
