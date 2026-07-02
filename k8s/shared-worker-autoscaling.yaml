@@ -27,3 +27,8 @@ spec:
             sum(rate(worker_processing_latency_seconds_bucket[5m])) by (le)
           )
         threshold: "0.9"
+
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "70"
