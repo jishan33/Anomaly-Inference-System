@@ -5,7 +5,7 @@ from typing import List
 
 from app.shared.redis import redis_client
 from app.inference.config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob
-from app.inference.inference import run_inference
+from app.inference.clients.inference_client import process_anomaly_detection
 from app.shared.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS, \
     REDIS_OPERATION_FAILURES_TOTAL
 from app.inference.queue_service import QueueJob, get_queue_depth, move_to_dlq
@@ -95,13 +95,15 @@ def process_batch(queue_name: str, tier: str, max_batch_size: int, max_wait_time
         queue_wait = now - job.get("created_at", now)
         QUEUE_WAIT_TIME.labels(worker_role=worker_role, tier=tier).observe(queue_wait)
 
+
     # Extract transactions for true parallel batch inference
     transactions = [job["transaction"] for job in batch]
 
     ######## Future GPU work ########
     start_inference = time.time()
     try:
-        results = run_inference(transactions)
+        results = process_anomaly_detection(transactions)
+
         latency = time.time() - start_inference
         WORKER_PROCESSING_LATENCY.labels(worker_role=worker_role, tier=tier).observe(latency)
     except Exception as e:
