@@ -20,7 +20,8 @@ def run_inference(transactions:list[dict]) -> list[PredictionResult]:
         httpclient.InferInput(name="INPUT", shape=input_data.shape, datatype="FP32")
     ]
     outputs = [
-        httpclient.InferRequestedOutput("OUTPUT")
+        httpclient.InferRequestedOutput("OUTPUT"),
+        httpclient.InferRequestedOutput("SCORE")
     ]
 
     raw_json = redis_client.get("model_metadata")
@@ -50,6 +51,7 @@ def run_inference(transactions:list[dict]) -> list[PredictionResult]:
             network_start = time.perf_counter()
             response = triton_client.infer(
                 model_name="anomaly_detector",
+                model_version="2",
                 inputs= inputs,
                 outputs= outputs
             )
@@ -66,9 +68,12 @@ def run_inference(transactions:list[dict]) -> list[PredictionResult]:
             is_anomaly = response.as_numpy("OUTPUT")
             logger.info(f"is_anomaly: {is_anomaly}")
 
+            score = response.as_numpy("SCORE")
+            logger.info(f"score: {score}")
+
             result = PredictionResult(
                 is_anomaly= bool(is_anomaly[0] == 1),
-                score=0,
+                score=score,
                 tier=features.tier
 
             )
