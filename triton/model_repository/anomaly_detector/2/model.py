@@ -37,8 +37,8 @@ class TritonPythonModel:
 
             prediction =self.model.predict(values)
             prediction_result = np.where(prediction == -1,
-                                         1,
-                                         0).astype(np.int32)
+                              1,
+                              0).astype(np.int32)
 
             pb_utils.Logger.log_info(
                 f"prediction={prediction} "

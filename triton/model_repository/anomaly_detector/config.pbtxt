@@ -21,5 +21,11 @@ output [
     name: "OUTPUT"
     data_type: TYPE_INT32
     dims: [1]
+  },
+  {
+    name: "SCORE"
+    data_type: TYPE_FP32
+    dims: [1]
   }
+
 ]
