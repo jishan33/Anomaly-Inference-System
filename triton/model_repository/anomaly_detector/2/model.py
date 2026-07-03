@@ -6,7 +6,7 @@ import triton_python_backend_utils as pb_utils
 
 class TritonPythonModel:
     def initialize(self, args):
-        self.model = joblib.load("/models/anomaly_detector/1/model.pkl")
+        self.model = joblib.load("/models/anomaly_detector/2/model.pkl")
         pb_utils.Logger.log_info(
             f"model initialized, args:{args}"
             f"numpy{ numpy.__version__}"
