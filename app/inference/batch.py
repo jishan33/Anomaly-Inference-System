@@ -137,6 +137,7 @@ def process_batch(queue_name: str, tier: str, max_batch_size: int, max_wait_time
             )
             PROCESSED_REQUESTS.labels(result.tier).inc()
             logger.info(f"Processed job {job['job_id']}")
+            logger.info(f"Processed job result {result}")
         except Exception as e:
             REDIS_OPERATION_FAILURES_TOTAL.labels(operation="redis_set_result").inc()
             logger.error(f"redis unavailable during set_result: {e}")

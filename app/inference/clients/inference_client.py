@@ -14,28 +14,41 @@ from tritonclient.http import InferResult, InferRequestedOutput, InferInput
 logger = logging.getLogger(__name__)
 
 def process_anomaly_detection(transactions:list[dict]) -> list[PredictionResult]:
-    raw_json = redis_client.get("model_metadata")
-    model_metadata = json.loads(raw_json)
-
     results = []
     try:
+        model_metadata = get_model_metadata()
+
         for transaction in transactions:
             features: Features = extract_features(transaction)
 
             triton_inputs: list[InferInput] = preprocess_input(features, model_metadata)
 
-            raw_response: InferResult = run_inference(triton_inputs, features, model_metadata)
+            raw_response_model_version_1: InferResult = run_inference("1", triton_inputs, features, model_metadata)
 
-            application_output = postprocess_output(raw_response, features, model_metadata)
+            application_output_version_1 = postprocess_output(raw_response_model_version_1, features, model_metadata)
 
-            results.append(application_output)
+            ### Version 2 Log only
+            raw_response_model_version_2: InferResult = run_inference("2", triton_inputs, features, model_metadata)
+            application_output_version_2 = postprocess_output(raw_response_model_version_2, features, model_metadata)
+            logger.info(f"application_output_version_2: {application_output_version_2}")
+
+            results.append(application_output_version_1)
 
     except Exception as e:
         logger.error(f" Inference Exception: {e}")
 
     return results
 
-def preprocess_input(features: Features, model_metadata: object) -> list[InferInput]:
+def get_model_metadata():
+    try:
+        raw_json = redis_client.get("model_metadata")
+        metadata = json.loads(raw_json)
+        return metadata
+    except Exception as e:
+       logger.error(f"Failed to get model metadata, exception: {e}")
+
+
+def preprocess_input(features: Features, model_metadata) -> list[InferInput]:
     # prepare numpy arrays
     input_data = np.array([[5000]], dtype=np.float32)
     inputs: list[InferInput] = [
@@ -61,7 +74,7 @@ def preprocess_input(features: Features, model_metadata: object) -> list[InferIn
 
     return inputs
 
-def run_inference(inputs: list[InferInput], features: Features, model_metadata) -> InferResult:
+def run_inference(model_version: str, inputs: list[InferInput], features: Features, model_metadata) -> InferResult:
     triton_client = httpclient.InferenceServerClient(url="triton:8000")
 
     outputs: list[InferRequestedOutput] = [
@@ -73,7 +86,7 @@ def run_inference(inputs: list[InferInput], features: Features, model_metadata) 
 
     response = triton_client.infer(
         model_name="anomaly_detector",
-        model_version="2",
+        model_version=model_version,
         inputs= inputs,
         outputs= outputs
     )
@@ -99,7 +112,8 @@ def postprocess_output(raw_response: InferResult, features: Features, model_meta
     result = PredictionResult(
         is_anomaly= bool(is_anomaly[0] == 1),
         score= float(score[0]),
-        tier= features.tier
+        tier= features.tier,
+        model_version= model_metadata["version"]
     )
 
     deserialize_end = time.perf_counter()
