@@ -16,6 +16,7 @@ class PredictionResult(NamedTuple):
     is_anomaly: bool
     score: float
     tier: str
+    model_version: str
 
 class Model:
     def __init__(self):
@@ -48,7 +49,8 @@ class Model:
         return PredictionResult(
             is_anomaly= bool(prediction==-1),
             score=float(score),
-            tier=features.tier
+            tier=features.tier,
+            model_version= self.metadata["model_version"]
         )
 
     @staticmethod

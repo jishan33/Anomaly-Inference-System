@@ -834,6 +834,67 @@ Scaling only the worker tier can overload Triton if the inference server is alre
 
 A production AI inference platform should identify where latency is accumulating and scale the constrained stage of the pipeline rather than applying uniform scaling across all components. This inference-aware strategy improves resource utilization while maintaining predictable latency under varying workloads.
 
+## Model Versioning & Output Contract
+
+The inference platform supports serving multiple model versions simultaneously using Triton Inference Server.
+
+```text
+anomaly_detector
+├── 1/
+│   └── model.py
+├── 2/
+│   └── model.py
+└── config.pbtxt
+```
+
+The worker explicitly selects the Triton model version through the Triton client `model_version` parameter rather than relying on the default latest version. This allows multiple versions of the same model to coexist and enables safe production rollout strategies such as canary deployments and shadow traffic.
+
+### Output Contract
+
+Both Version 1 and Version 2 expose the same inference contract.
+
+| Output | Description |
+|---------|-------------|
+| `OUTPUT` | Binary anomaly prediction (`0 = Normal`, `1 = Anomaly`) |
+| `SCORE` | IsolationForest anomaly score returned by `decision_function()` |
+
+Example response:
+
+```json
+{
+    "prediction": 1,
+    "score": -0.42,
+    "model_version": "1"
+}
+```
+
+Maintaining a consistent output contract allows the worker to switch between model versions without requiring changes to downstream consumers.
+
+### Versioning Strategy
+
+The inference client explicitly selects the Triton model version through the `model_version` parameter.
+
+This enables multiple versions of the model to coexist while preserving a stable client interface. 
+
+### Production Rollout Strategy
+
+Multiple model versions enable safer production deployments by reducing the blast radius of model updates.
+
+Typical rollout strategies include:
+
+- Explicit version selection
+- Canary deployment
+- Shadow traffic
+- Fast rollback
+
+For this project:
+
+- Version 1 is the production inference path.
+- Version 2 is executed as a shadow model for validation.
+- The Version 1 result is stored and returned to clients.
+- Version 2 predictions and anomaly scores are logged for comparison without impacting production responses.
+
+This approach allows new model versions to be evaluated under real production traffic while preserving the stability of the production inference service.
 # 🚀 Author
 
 Built as part of an AI Infrastructure Engineer transition roadmap focused on production AI serving systems, observability, autoscaling, Kubernetes reliability, and distributed inference infrastructure.

@@ -1,6 +1,10 @@
 name: "anomaly_detector"
 backend: "python"
 
+version_policy {
+  all {}
+}
+
 max_batch_size: 8    # Enables Triton's Dynamic Batching
 
 dynamic_batching {

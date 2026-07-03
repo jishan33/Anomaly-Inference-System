@@ -1,17 +1,10 @@
 import joblib
-import numpy
 import numpy as np
-import sklearn
 import triton_python_backend_utils as pb_utils
 
 class TritonPythonModel:
     def initialize(self, args):
         self.model = joblib.load("/models/anomaly_detector/1/model.pkl")
-        pb_utils.Logger.log_info(
-            f"model initialized, args:{args}"
-            f"numpy{ numpy.__version__}"
-            f"scikit{ sklearn.__version__}"
-        )
 
     def execute(self, requests):
         responses = []
