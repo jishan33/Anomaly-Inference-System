@@ -1,7 +1,7 @@
 import json
 
 from fastapi import APIRouter, HTTPException
-
+from app.inference.clients import inference_client
 from app.shared.redis import redis_client
 from app.inference.model import PredictRequest, model_instance
 from app.inference.queue_service import enqueue_job
@@ -49,10 +49,10 @@ async def get_result(job_id:str):
 
     return json.loads(result)
 
-@router.get("/training_model_metadata")
+@router.get("/model_metadata")
 async def get_model_metadata():
     try:
-        result = model_instance.get_model_metadata()
+        result = inference_client.get_model_metadata()
     except Exception:
         raise HTTPException(
             status_code=500,
