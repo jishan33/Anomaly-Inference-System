@@ -189,3 +189,37 @@ WORKER_TRITON_DESERIALIZATION_SECONDS = Histogram(
     "Time spent on Triton response deserialization",
     ["model_name", "model_version","tier"]
 )
+
+# model behaviour
+
+PREDICTION_AGREEMENT_TOTAL = Counter(
+    "prediction_agreement_total",
+    "model version 1 and model version 2 prediction have the same result",
+    ["model_name"]
+)
+
+PREDICTION_DISAGREEMENT_TOTAL = Counter(
+    "prediction_disagreement_total",
+    "model version 1 and model version 2 prediction have different result",
+    ["model_name"]
+)
+
+PREDICTION_RESULT_TOTAL = Counter(
+    "prediction_result_total",
+    "Prediction count by model version and result",
+    ["model_name", "model_version", "result"]
+)
+
+PREDICTION_SCORE_HISTOGRAM = Histogram(
+    "prediction_score",
+    "Anomaly score distribution by model version",
+    ["model_name", "model_version"],
+    buckets=[-1.0, -0.5, -0.25, 0.0, 0.25, 0.5, 1.0]
+)
+
+PREDICTION_SCORE_DIFF = Histogram(
+    "prediction_score_diff",
+    "absolute anomaly score difference between model versions",
+    ["model_name"],
+    buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0]
+)

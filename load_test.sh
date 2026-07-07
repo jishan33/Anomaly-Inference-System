@@ -9,7 +9,7 @@
  # ./load_test.sh
 
 # 1. Total requests per wave/burst
-BATCH_SIZE=200
+BATCH_SIZE=1500
 
 # API endpoint
 URL="http://localhost:80/predict_async"
