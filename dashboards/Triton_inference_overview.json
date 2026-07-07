@@ -116,7 +116,32 @@
           },
           "unit": "reqps"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "success request 1"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": true,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -146,8 +171,8 @@
             "uid": "ffowbg1e4lslce"
           },
           "editorMode": "builder",
-          "expr": "rate(nv_inference_exec_count{model=\"anomaly_detector\"}[1m])",
-          "legendFormat": "model executed ",
+          "expr": "sum by(version) (rate(nv_inference_exec_count{model=\"anomaly_detector\"}[1m]))",
+          "legendFormat": "model executed {{version}}",
           "range": true,
           "refId": "A"
         },
@@ -157,23 +182,11 @@
             "uid": "afq61m2627htse"
           },
           "editorMode": "code",
-          "expr": "rate(nv_inference_request_success[1m])",
+          "expr": "sum by (version) (rate(nv_inference_request_success{model=\"anomaly_detector\"}[1m]))",
           "instant": false,
-          "legendFormat": "success ",
+          "legendFormat": "success request {{version}}",
           "range": true,
           "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "afq61m2627htse"
-          },
-          "editorMode": "code",
-          "expr": "rate(nv_inference_request_failure[1m])",
-          "instant": false,
-          "legendFormat": "failure ",
-          "range": true,
-          "refId": "C"
         }
       ],
       "title": "Triton Request Rate",
@@ -248,7 +261,7 @@
         "x": 12,
         "y": 1
       },
-      "id": 23,
+      "id": 35,
       "options": {
         "legend": {
           "calcs": [],
@@ -270,8 +283,8 @@
             "uid": "ffowbg1e4lslce"
           },
           "editorMode": "builder",
-          "expr": "rate(nv_inference_count{model=\"anomaly_detector\"}[1m])",
-          "legendFormat": "__auto",
+          "expr": "sum by(version) (rate(nv_inference_count{model=\"anomaly_detector\"}[1m]))",
+          "legendFormat": "model_version {{version}}",
           "range": true,
           "refId": "A"
         }
@@ -369,9 +382,9 @@
             "type": "prometheus",
             "uid": "ffowbg1e4lslce"
           },
-          "editorMode": "code",
-          "expr": "rate(nv_inference_request_duration_us{model=\"anomaly_detector\"}[1m])\n/\nrate(nv_inference_request_success{model=\"anomaly_detector\"}[1m])\n/\n1000",
-          "legendFormat": "__auto",
+          "editorMode": "builder",
+          "expr": "(sum by(version) (rate(nv_inference_request_duration_us{model=\"anomaly_detector\"}[1m]) / 1000)) / (sum by(version) (rate(nv_inference_request_success{model=\"anomaly_detector\"}[1m])))",
+          "legendFormat": "model_version {{version}}",
           "range": true,
           "refId": "A"
         }
@@ -468,9 +481,9 @@
             "type": "prometheus",
             "uid": "ffowbg1e4lslce"
           },
-          "editorMode": "code",
-          "expr": "rate(nv_inference_compute_infer_duration_us{model=\"anomaly_detector\"}[1m])\n/ \nrate(nv_inference_request_success{model=\"anomaly_detector\"}[1m])\n/\n1000",
-          "legendFormat": "__auto",
+          "editorMode": "builder",
+          "expr": "(sum by(version) (rate(nv_inference_compute_infer_duration_us{model=\"anomaly_detector\"}[1m]) / 1000)) / (sum by(version) (rate(nv_inference_request_success{model=\"anomaly_detector\"}[1m])))",
+          "legendFormat": "model_version {{version}}",
           "range": true,
           "refId": "A"
         }
@@ -567,9 +580,9 @@
             "type": "prometheus",
             "uid": "ffowbg1e4lslce"
           },
-          "editorMode": "code",
-          "expr": "rate(nv_inference_queue_duration_us{model=\"anomaly_detector\"}[1m])\n/\nrate(nv_inference_request_success{model=\"anomaly_detector\"}[1m])\n/\n1000",
-          "legendFormat": "__auto",
+          "editorMode": "builder",
+          "expr": "(sum by(version) (rate(nv_inference_queue_duration_us{model=\"anomaly_detector\"}[1m]) / 1000)) / (sum by(version) (rate(nv_inference_request_success{model=\"anomaly_detector\"}[1m])))",
+          "legendFormat": "model_version {{version}}",
           "range": true,
           "refId": "A"
         }
@@ -666,9 +679,9 @@
             "type": "prometheus",
             "uid": "ffowbg1e4lslce"
           },
-          "editorMode": "code",
-          "expr": "rate(nv_inference_compute_input_duration_us{model=\"anomaly_detector\"}[1m])\n/\nrate(nv_inference_count{model=\"anomaly_detector\"}[1m])\n/\n1000",
-          "legendFormat": "__auto",
+          "editorMode": "builder",
+          "expr": "(sum by(version) (rate(nv_inference_compute_input_duration_us{model=\"anomaly_detector\"}[1m]) / 1000)) / (sum by(version) (rate(nv_inference_count{model=\"anomaly_detector\"}[1m])))",
+          "legendFormat": "model_version{{version}}",
           "range": true,
           "refId": "A"
         }
@@ -767,8 +780,8 @@
             "uid": "ffowbg1e4lslce"
           },
           "editorMode": "code",
-          "expr": "rate(nv_inference_compute_output_duration_us{model=\"anomaly_detector\"}[1m])\n/\nrate(nv_inference_count{model=\"anomaly_detector\"}[1m])\n/\n1000",
-          "legendFormat": "__auto",
+          "expr": "sum by (version) (rate(nv_inference_compute_output_duration_us{model=\"anomaly_detector\"}[1m]))\n/\nsum by (version) (rate(nv_inference_count{model=\"anomaly_detector\"}[1m]))\n/\n1000",
+          "legendFormat": "model_version {{version}}",
           "range": true,
           "refId": "A"
         }
@@ -866,9 +879,9 @@
             "type": "prometheus",
             "uid": "ffowbg1e4lslce"
           },
-          "editorMode": "code",
-          "expr": "(\nrate(nv_inference_queue_duration_us{model=\"anomaly_detector\"}[1m])\n)\n/\n(\nrate(nv_inference_request_duration_us{model=\"anomaly_detector\"}[1m])\n)",
-          "legendFormat": "__auto",
+          "editorMode": "builder",
+          "expr": "sum by(version) (rate(nv_inference_queue_duration_us{model=\"anomaly_detector\"}[1m])) / (sum by(version) (rate(nv_inference_request_duration_us{model=\"anomaly_detector\"}[1m])))",
+          "legendFormat": "model_version {{version}}",
           "range": true,
           "refId": "A"
         }
@@ -1177,9 +1190,9 @@
             "type": "prometheus",
             "uid": "ffowbg1e4lslce"
           },
-          "editorMode": "code",
-          "expr": "rate(nv_inference_request_success{model=\"anomaly_detector\"}[1m])\n/rate(nv_inference_exec_count{model=\"anomaly_detector\"}[1m])",
-          "legendFormat": "__auto",
+          "editorMode": "builder",
+          "expr": "sum by(version) (rate(nv_inference_request_success{model=\"anomaly_detector\"}[1m])) / (sum by(version) (rate(nv_inference_exec_count{model=\"anomaly_detector\"}[1m])))",
+          "legendFormat": "model_version {{version}}",
           "range": true,
           "refId": "A"
         }
@@ -1496,6 +1509,106 @@
       ],
       "title": "Worker -> Triton  P95",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "afq61m2627htse"
+      },
+      "description": "to track the total cumulative number of successful inference requests processed by anomaly_detector model.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 59
+      },
+      "id": 23,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffowbg1e4lslce"
+          },
+          "editorMode": "builder",
+          "expr": "histogram_quantile(0.95, sum by(le, tier) (rate(worker_processing_latency_seconds_bucket[5m])))",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Worker Processing Latency P95",
+      "type": "timeseries"
     }
   ],
   "preload": false,
@@ -1510,8 +1623,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Triton Inference Overview",
+  "title": "Triton Inference Overview - with Versions",
   "uid": "adn2h2h",
-  "version": 54,
+  "version": 74,
   "weekStart": ""
 }
