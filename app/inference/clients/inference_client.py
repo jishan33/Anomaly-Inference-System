@@ -46,12 +46,16 @@ def process_anomaly_detection(transactions:list[dict]) -> list[PredictionResult]
 
 def get_model_metadata():
     try:
-        raw_json = redis_client.get("model_metadata")
-        metadata = json.loads(raw_json)
-        return metadata
+        triton_client = httpclient.InferenceServerClient(url="triton:8000")
+        metadata: dict = triton_client.get_model_metadata(TRITON_MODEL_NAME)
+        model_metadata = {
+            "name": metadata.get("name", "unknown"),
+            "version": (metadata.get('versions') or ['unknown'])[0]
+        }
+        return model_metadata
+
     except Exception as e:
        logger.error(f"Failed to get model metadata, exception: {e}")
-
 
 def preprocess_input(features: Features, model_version) -> list[InferInput]:
     # prepare numpy arrays
