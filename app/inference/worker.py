@@ -19,7 +19,7 @@ TRITON_MODEL_NAME = os.getenv("TRITON_MODEL_NAME", "unknown")
 
 def get_model_metadata():
     triton_client = httpclient.InferenceServerClient(url="triton:8000")
-    metadata: dict = triton_client.get_model_metadata("anomaly_detector")
+    metadata: dict = triton_client.get_model_metadata(TRITON_MODEL_NAME)
     model_metadata = {
         "name": metadata.get("name", "unknown"),
         "version": (metadata.get('versions') or ['unknown'])[0]
@@ -66,5 +66,4 @@ def worker_loop():
 if __name__ == "__main__":
     setup_logging()
     start_http_server(9001)
-    get_model_metadata()
     worker_loop()
