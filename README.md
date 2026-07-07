@@ -657,15 +657,14 @@ Planned reliability and production serving improvements:
 * [✅] model artifact loading
 * [✅] model metadata endpoint
 * [✅] model-serving dashboard
-* [ ] distributed scaling
-* [ ] Redis HA / Sentinel / Cluster
-* [ ] KEDA-based autoscaling
-* [ ] model canary deployment
-* [ ] model rollback workflow
-* [ ] Triton Inference Server exploration
-* [ ] vLLM serving concepts
-* [ ] KServe / Ray Serve exploration
-
+* [✅] distributed scaling
+* [⚠️] Redis HA / Sentinel / Cluster
+* [✅] KEDA-based autoscaling
+* [✅] model canary deployment
+* [✅] model rollback workflow
+* [✅] Triton Inference Server exploration
+* [⏳] vLLM serving concepts
+* [⏳] KServe / Ray Serve exploration
 ---
 
 # 🚀 Learning Goals
@@ -895,6 +894,84 @@ For this project:
 - Version 2 predictions and anomaly scores are logged for comparison without impacting production responses.
 
 This approach allows new model versions to be evaluated under real production traffic while preserving the stability of the production inference service.
+
+## Canary Deployment
+
+The inference platform supports configurable canary deployment to safely validate new model versions under real production traffic while minimizing the blast radius of potential regressions.
+
+### Architecture
+
+```text
+                    Worker
+
+                       │
+                       ▼
+         MODEL_VERSION_2_CANARY_PERCENTAGE
+                       │
+          ┌────────────┴────────────┐
+          │                         │
+     95% Traffic               5% Traffic
+          │                         │
+          ▼                         ▼
+Model Version 1             Model Version 2
+          │                         │
+          └────────────┬────────────┘
+                       ▼
+                Triton Inference Server
+```
+
+The worker determines which model version to invoke using the configurable canary percentage stored in the Kubernetes ConfigMap.
+
+```yaml
+MODEL_VERSION_2_CANARY_PERCENTAGE: "0.05"
+```
+
+This separates rollout policy from application logic, allowing traffic distribution to be adjusted without modifying the inference code.
+
+### Observability
+
+The canary deployment is monitored using version-specific inference metrics, including:
+
+* Request rate by model version
+* Triton average request latency
+* Triton queue latency
+* Triton inference latency
+* Effective batch size
+* Inference execution count
+
+During load testing, approximately **5%** of requests were routed to **Model Version 2**, confirming that the routing policy operated as expected.
+
+Version 2 exhibited a slightly higher average inference latency than Version 1. This is likely due to reduced batching efficiency, as the lower canary traffic provides fewer opportunities for Triton's dynamic batching algorithm to form larger batches.
+
+### Rollback Strategy
+
+The rollout percentage is externally configured through the Kubernetes ConfigMap.
+
+If the canary model exhibits degraded performance or unexpected behaviour, traffic can immediately be redirected back to the stable model by setting:
+
+```yaml
+MODEL_VERSION_2_CANARY_PERCENTAGE: "0.0"
+```
+
+and restarting the worker deployment.
+
+This immediately routes **100%** of production traffic back to the stable model while leaving the new model deployed for further investigation.
+
+If the issue originates from the application itself (for example, inference routing logic or worker implementation), the appropriate recovery mechanism is to roll back the Kubernetes Deployment to a previously known-good container image.
+
+### Benefits
+
+This canary deployment strategy provides several production advantages:
+
+* Gradually validates new model versions using real production traffic.
+* Reduces the blast radius of model regressions.
+* Enables version-specific performance comparison before full promotion.
+* Supports rapid rollback through configuration changes.
+* Separates model rollout policy from application implementation.
+
+By externalizing rollout configuration and combining it with version-aware observability, the platform can safely introduce new model versions while maintaining production reliability.
+
+
 # 🚀 Author
 
 Built as part of an AI Infrastructure Engineer transition roadmap focused on production AI serving systems, observability, autoscaling, Kubernetes reliability, and distributed inference infrastructure.
