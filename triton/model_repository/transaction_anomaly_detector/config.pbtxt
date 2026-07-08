@@ -1,0 +1,34 @@
+name: "transaction_anomaly_detector"
+backend: "python"
+
+version_policy {
+  all {}
+}
+
+max_batch_size: 8    # Enables Triton's Dynamic Batching
+
+dynamic_batching {
+    preferred_batch_size: [4, 8]
+    max_queue_delay_microseconds: 5000
+}
+
+input [
+  {
+    name: "INPUT"
+    data_type: TYPE_FP32
+    dims: [1]  # The shape of a SINGLE request
+  }
+]
+
+output [
+  {
+    name: "OUTPUT"
+    data_type: TYPE_INT32
+    dims: [1]
+  },
+  {
+    name: "SCORE"
+    data_type: TYPE_FP32
+    dims: [1]
+  }
+]

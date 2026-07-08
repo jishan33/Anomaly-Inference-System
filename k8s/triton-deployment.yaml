@@ -16,7 +16,7 @@
 #|     hostPath mounted to /models                  |
 #|                │                                 |
 #|                ▼                                 |
-#|  anomaly_detector/                               |
+#|  transaction_anomaly_detector/                               |
 #|    ├── config.pbtxt                              |
 #|    ├── model.py                                  |
 #|    └── model.pkl                                 |

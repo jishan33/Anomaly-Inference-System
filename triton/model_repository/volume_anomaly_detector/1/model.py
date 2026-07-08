@@ -4,7 +4,7 @@ import triton_python_backend_utils as pb_utils
 
 class TritonPythonModel:
     def initialize(self, args):
-        self.model = joblib.load("/models/anomaly_detector/1/model.pkl")
+        self.model = joblib.load("/models/volume_anomaly_detector/1/model.pkl")
 
     def execute(self, requests):
         responses = []

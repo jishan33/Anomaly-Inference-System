@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import time
 from typing import List
 
@@ -102,7 +103,8 @@ def process_batch(queue_name: str, tier: str, max_batch_size: int, max_wait_time
     ######## Future GPU work ########
     start_inference = time.time()
     try:
-        results = process_anomaly_detection(transactions)
+        request_type = os.getenv("ANOMALY_MODEL", "unknown")
+        results = process_anomaly_detection(transactions, request_type)
 
         latency = time.time() - start_inference
         WORKER_PROCESSING_LATENCY.labels(worker_role=worker_role, tier=tier).observe(latency)
