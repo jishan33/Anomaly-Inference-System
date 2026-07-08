@@ -10,4 +10,8 @@ data:
   REDIS_PORT: "6379"
 
   TRITON_MODEL_NAME: anomaly_detector
+
+  MODEL_ROLLOUT_MODE: "shadow"   # stable | canary | shadow
+  STABLE_MODEL_VERSION: "1"
+  CANDIDATE_MODEL_VERSION: "2"
   MODEL_VERSION_2_CANARY_PERCENTAGE: "0.05"
