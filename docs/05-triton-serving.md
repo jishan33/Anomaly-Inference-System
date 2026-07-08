@@ -57,16 +57,30 @@ Workers communicate with Triton through the HTTP inference API and do not load m
 
 # Multi-Model Serving
 
+## Overview
+
 The platform supports serving multiple logical models from a single Triton deployment.
 
-Current models include:
+Although the project currently serves two lightweight models, the same architecture scales naturally to production AI platforms
+that host dozens or hundreds of models.
+
+Externalizing model selection through runtime configuration allows new models to be introduced without changing inference logic,
+while Triton provides centralized model management, versioning, and observability.
+
+---
+
+## Current models
 
 | Model | Purpose |
 |--------|---------|
 | `transaction_anomaly_detector` | Detect anomalous transactions |
 | `volume_anomaly_detector` | Detect abnormal transaction volume |
 
-Model selection is externalized through runtime configuration.
+---
+
+## Runtime Model Routing
+
+Model selection is externalized through Kubernetes configuration.
 
 ```yaml
 ANOMALY_MODEL: transaction_anomaly_detector
@@ -85,6 +99,21 @@ This approach enables:
 - Simplified deployment
 
 ---
+## Multi-Model Serving Trade-offs
+
+### Benefits
+
+- Centralized model serving
+- Independent model lifecycle
+- Shared serving infrastructure
+- Simplified worker implementation
+
+### Trade-offs
+- Increase memory usage as additional models are loaded
+- Resource contention between concurrently served models
+- More complex capacity planning
+- Per-model monitoring and autoscaling become increasingly important
+
 
 # Model Versioning
 
