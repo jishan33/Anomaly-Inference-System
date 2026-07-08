@@ -17,9 +17,9 @@ spec:
         metricName: triton_queue_latency_ms
         query: |
           (
-            sum(rate(nv_inference_queue_duration_us{model="anomaly_detector"}[5m]))
+            sum(rate(nv_inference_queue_duration_us{model="transaction_anomaly_detector"}[5m]))
             /
-            clamp_min(sum(rate(nv_inference_request_success{model="anomaly_detector"}[5m])), 1)
+            clamp_min(sum(rate(nv_inference_request_success{model="transaction_anomaly_detector"}[5m])), 1)
           )
           /
           1000
@@ -31,9 +31,9 @@ spec:
         metricName: triton_request_latency_ms
         query: |
           (
-            sum(rate(nv_inference_request_duration_us{model="anomaly_detector"}[5m]))
+            sum(rate(nv_inference_request_duration_us{model="transaction_anomaly_detector"}[5m]))
             /
-            clamp_min(sum(rate(nv_inference_request_success{model="anomaly_detector"}[5m])), 1)
+            clamp_min(sum(rate(nv_inference_request_success{model="transaction_anomaly_detector"}[5m])), 1)
           )
           /
           1000

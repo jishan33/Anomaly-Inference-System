@@ -1,4 +1,4 @@
-name: "anomaly_detector"
+name: "volume_anomaly_detector"
 backend: "python"
 
 version_policy {

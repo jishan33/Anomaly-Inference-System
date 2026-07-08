@@ -27,34 +27,35 @@ The platform is designed to decouple API handling, request scheduling, model exe
                            │ Inference Queue │
                            └────────┬────────┘
                                     │
-                  ┌─────────────────┴─────────────────┐
-                  │                                   │
-                  ▼                                   ▼
-         VIP Worker Deployment              Shared Worker Deployment
-                  │                                   │
-                  └───────────────┬───────────────────┘
-                                  │
-                        QoS Scheduling & Batching
-                                  │
-                                  ▼
-                    Triton Inference Server
-                                  │
-                    Dynamic Batching
-                    Model Versioning
-                    Canary Deployment
-                    Shadow Traffic
-                                  │
-                                  ▼
-                       IsolationForest Models
-                           Version 1 / Version 2
-
+                      ┌─────────────┴───────────────┐
+                      │                             │
+                      ▼                             ▼
+                  VIP Worker                  Shared Worker 
+                      │                             │    
+                      └───────────────┬─────────────┘
+                                      │
+                         QoS Scheduling & Batching
+                                      │
+                          Runtime Model Routing
+                                      │
+                                      ▼
+                          Triton Inference Server
+                                      │
+                              Multi-Model Serving
+                                      │
+              ┌───────────────────────┴────────────────────────┐
+              │                                                │
+              ▼                                                ▼
+    Transaction Anomaly Detector                 Volume Anomaly Detector
+         ┌────┴────┐                                            │
+         ▼         ▼                                            ▼
+     Version 1  Version 2                                   Version 1
 ────────────────────────────────────────────────────────────
 
- Prometheus
-        │
- Grafana
-```
-
+Prometheus
+   │
+Grafana
+````
 ---
 
 # Design Principles
@@ -82,11 +83,15 @@ Worker
 
 ↓
 
+Model Routing
+
+↓
+
 Triton
 
 ↓
 
-Model
+Selected Model
 ```
 
 Each component owns a single responsibility:
@@ -95,8 +100,8 @@ Each component owns a single responsibility:
 |------------|----------------|
 | FastAPI | Request validation, admission control, asynchronous job submission |
 | Redis | Queue buffering and result storage |
-| Worker | Queue consumption, QoS scheduling, inference orchestration |
-| Triton | Model loading, batching, model execution |
+| Worker | Queue consumption, QoS scheduling, model routing, inference orchestration |
+| Triton | Multi-model serving, model loading, dynamic batching, model versioning, inference execution |
 | Prometheus | Metrics collection |
 | Grafana | Visualization and operational monitoring |
 
@@ -122,6 +127,10 @@ Push job to Redis
 ↓
 
 Worker dequeues request
+
+↓
+
+Determine target model
 
 ↓
 
@@ -152,6 +161,10 @@ The worker performs inference in three logical stages:
 
 ```text
 Feature Extraction
+
+↓
+
+Model Routing
 
 ↓
 
@@ -189,6 +202,7 @@ Responsibilities include:
 - Queue consumption
 - QoS scheduling
 - Request batching
+- Runtime model routing
 - Triton communication
 - Result persistence
 - Metrics collection
@@ -204,8 +218,10 @@ Model execution is delegated to Triton Inference Server.
 Benefits include:
 
 - Centralized model management
+- Multi-model serving
+- Runtime model routing
 - Dynamic batching
-- Runtime model versioning
+- Independent model versioning
 - Standardized inference API
 - Dedicated serving infrastructure
 
@@ -243,6 +259,7 @@ Current platform capabilities include:
 - Horizontal Pod Autoscaling
 - KEDA inference-aware autoscaling
 - Triton model serving
+- Multi-model serving
 - Model versioning
 - Canary deployment
 - Shadow traffic

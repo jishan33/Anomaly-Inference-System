@@ -171,7 +171,7 @@
             "uid": "ffowbg1e4lslce"
           },
           "editorMode": "builder",
-          "expr": "sum by(version) (rate(nv_inference_exec_count{model=\"anomaly_detector\"}[1m]))",
+          "expr": "sum by(version) (rate(nv_inference_exec_count{model=\"transaction_anomaly_detector\"}[1m]))",
           "legendFormat": "model executed {{version}}",
           "range": true,
           "refId": "A"
@@ -182,7 +182,7 @@
             "uid": "afq61m2627htse"
           },
           "editorMode": "code",
-          "expr": "sum by (version) (rate(nv_inference_request_success{model=\"anomaly_detector\"}[1m]))",
+          "expr": "sum by (version) (rate(nv_inference_request_success{model=\"transaction_anomaly_detector\"}[1m]))",
           "instant": false,
           "legendFormat": "success request {{version}}",
           "range": true,
@@ -197,7 +197,7 @@
         "type": "prometheus",
         "uid": "afq61m2627htse"
       },
-      "description": "to track the total cumulative number of successful inference requests processed by anomaly_detector model.",
+      "description": "to track the total cumulative number of successful inference requests processed by transaction_anomaly_detector model.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -283,7 +283,7 @@
             "uid": "ffowbg1e4lslce"
           },
           "editorMode": "builder",
-          "expr": "sum by(version) (rate(nv_inference_count{model=\"anomaly_detector\"}[1m]))",
+          "expr": "sum by(version) (rate(nv_inference_count{model=\"transaction_anomaly_detector\"}[1m]))",
           "legendFormat": "model_version {{version}}",
           "range": true,
           "refId": "A"
@@ -383,7 +383,7 @@
             "uid": "ffowbg1e4lslce"
           },
           "editorMode": "builder",
-          "expr": "(sum by(version) (rate(nv_inference_request_duration_us{model=\"anomaly_detector\"}[1m]) / 1000)) / (sum by(version) (rate(nv_inference_request_success{model=\"anomaly_detector\"}[1m])))",
+          "expr": "(sum by(version) (rate(nv_inference_request_duration_us{model=\"transaction_anomaly_detector\"}[1m]) / 1000)) / (sum by(version) (rate(nv_inference_request_success{model=\"transaction_anomaly_detector\"}[1m])))",
           "legendFormat": "model_version {{version}}",
           "range": true,
           "refId": "A"
@@ -482,7 +482,7 @@
             "uid": "ffowbg1e4lslce"
           },
           "editorMode": "builder",
-          "expr": "(sum by(version) (rate(nv_inference_compute_infer_duration_us{model=\"anomaly_detector\"}[1m]) / 1000)) / (sum by(version) (rate(nv_inference_request_success{model=\"anomaly_detector\"}[1m])))",
+          "expr": "(sum by(version) (rate(nv_inference_compute_infer_duration_us{model=\"transaction_anomaly_detector\"}[1m]) / 1000)) / (sum by(version) (rate(nv_inference_request_success{model=\"transaction_anomaly_detector\"}[1m])))",
           "legendFormat": "model_version {{version}}",
           "range": true,
           "refId": "A"
@@ -581,7 +581,7 @@
             "uid": "ffowbg1e4lslce"
           },
           "editorMode": "builder",
-          "expr": "(sum by(version) (rate(nv_inference_queue_duration_us{model=\"anomaly_detector\"}[1m]) / 1000)) / (sum by(version) (rate(nv_inference_request_success{model=\"anomaly_detector\"}[1m])))",
+          "expr": "(sum by(version) (rate(nv_inference_queue_duration_us{model=\"transaction_anomaly_detector\"}[1m]) / 1000)) / (sum by(version) (rate(nv_inference_request_success{model=\"transaction_anomaly_detector\"}[1m])))",
           "legendFormat": "model_version {{version}}",
           "range": true,
           "refId": "A"
@@ -680,7 +680,7 @@
             "uid": "ffowbg1e4lslce"
           },
           "editorMode": "builder",
-          "expr": "(sum by(version) (rate(nv_inference_compute_input_duration_us{model=\"anomaly_detector\"}[1m]) / 1000)) / (sum by(version) (rate(nv_inference_count{model=\"anomaly_detector\"}[1m])))",
+          "expr": "(sum by(version) (rate(nv_inference_compute_input_duration_us{model=\"transaction_anomaly_detector\"}[1m]) / 1000)) / (sum by(version) (rate(nv_inference_count{model=\"transaction_anomaly_detector\"}[1m])))",
           "legendFormat": "model_version{{version}}",
           "range": true,
           "refId": "A"
@@ -780,7 +780,7 @@
             "uid": "ffowbg1e4lslce"
           },
           "editorMode": "code",
-          "expr": "sum by (version) (rate(nv_inference_compute_output_duration_us{model=\"anomaly_detector\"}[1m]))\n/\nsum by (version) (rate(nv_inference_count{model=\"anomaly_detector\"}[1m]))\n/\n1000",
+          "expr": "sum by (version) (rate(nv_inference_compute_output_duration_us{model=\"transaction_anomaly_detector\"}[1m]))\n/\nsum by (version) (rate(nv_inference_count{model=\"transaction_anomaly_detector\"}[1m]))\n/\n1000",
           "legendFormat": "model_version {{version}}",
           "range": true,
           "refId": "A"
@@ -880,7 +880,7 @@
             "uid": "ffowbg1e4lslce"
           },
           "editorMode": "builder",
-          "expr": "sum by(version) (rate(nv_inference_queue_duration_us{model=\"anomaly_detector\"}[1m])) / (sum by(version) (rate(nv_inference_request_duration_us{model=\"anomaly_detector\"}[1m])))",
+          "expr": "sum by(version) (rate(nv_inference_queue_duration_us{model=\"transaction_anomaly_detector\"}[1m])) / (sum by(version) (rate(nv_inference_request_duration_us{model=\"transaction_anomaly_detector\"}[1m])))",
           "legendFormat": "model_version {{version}}",
           "range": true,
           "refId": "A"
@@ -1191,7 +1191,7 @@
             "uid": "ffowbg1e4lslce"
           },
           "editorMode": "builder",
-          "expr": "sum by(version) (rate(nv_inference_request_success{model=\"anomaly_detector\"}[1m])) / (sum by(version) (rate(nv_inference_exec_count{model=\"anomaly_detector\"}[1m])))",
+          "expr": "sum by(version) (rate(nv_inference_request_success{model=\"transaction_anomaly_detector\"}[1m])) / (sum by(version) (rate(nv_inference_exec_count{model=\"transaction_anomaly_detector\"}[1m])))",
           "legendFormat": "model_version {{version}}",
           "range": true,
           "refId": "A"
@@ -1303,7 +1303,7 @@
             "uid": "ffowbg1e4lslce"
           },
           "editorMode": "builder",
-          "expr": "histogram_quantile(0.95, sum by(le, tier) (rate(worker_triton_serialization_seconds_bucket{model_name=\"anomaly_detector\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by(le, tier) (rate(worker_triton_serialization_seconds_bucket{model_name=\"transaction_anomaly_detector\"}[5m])))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -1402,7 +1402,7 @@
             "uid": "ffowbg1e4lslce"
           },
           "editorMode": "builder",
-          "expr": "histogram_quantile(0.95, sum by(le, tier) (rate(worker_triton_deserialization_seconds_bucket{model_name=\"anomaly_detector\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by(le, tier) (rate(worker_triton_deserialization_seconds_bucket{model_name=\"transaction_anomaly_detector\"}[5m])))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"

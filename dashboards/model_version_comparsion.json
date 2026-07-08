@@ -142,7 +142,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(rate(prediction_agreement_total{model_name=\"anomaly_detector\"}[1m]))",
+          "expr": "sum(rate(prediction_agreement_total{model_name=\"transaction_anomaly_detector\"}[1m]))",
           "legendFormat": "model version 1 &  model version 2 ",
           "range": true,
           "refId": "A"
@@ -237,7 +237,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(rate(prediction_disagreement_total{model_name=\"anomaly_detector\"}[5m]))",
+          "expr": "sum(rate(prediction_disagreement_total{model_name=\"transaction_anomaly_detector\"}[5m]))",
           "legendFormat": "model version 1 &  model version 2 ",
           "range": true,
           "refId": "A"
@@ -489,7 +489,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum by(le) (rate(prediction_score_bucket{model_version=\"1\", model_name=\"anomaly_detector\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by(le) (rate(prediction_score_bucket{model_version=\"1\", model_name=\"transaction_anomaly_detector\"}[5m])))",
           "interval": "",
           "legendFormat": "model version 1",
           "range": true,
@@ -501,7 +501,7 @@
             "uid": "afq61m2627htse"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum by(le) (rate(prediction_score_bucket{model_version=\"2\", model_name=\"anomaly_detector\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by(le) (rate(prediction_score_bucket{model_version=\"2\", model_name=\"transaction_anomaly_detector\"}[5m])))",
           "instant": false,
           "legendFormat": "model version 2",
           "range": true,
@@ -597,7 +597,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "histogram_quantile(\n  0.95,\n  sum by(le) (\n    rate(prediction_score_diff_bucket{model_name=\"anomaly_detector\"}[5m])\n  )\n)",
+          "expr": "histogram_quantile(\n  0.95,\n  sum by(le) (\n    rate(prediction_score_diff_bucket{model_name=\"transaction_anomaly_detector\"}[5m])\n  )\n)",
           "interval": "",
           "legendFormat": "model version 1",
           "range": true,
