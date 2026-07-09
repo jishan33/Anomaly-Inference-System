@@ -47,12 +47,20 @@ async def get_result(job_id:str):
     if not result:
         return {"status": "processing"}
 
-    return json.loads(result)
+    data =  json.loads(result)
+    return {
+        "is_anomaly": data[0],
+        "score": data[1],
+        "tier": data[2],
+        "model_version": data[3],
+    }
+
 
 @router.get("/model_metadata")
 async def get_model_metadata():
     try:
-        result = inference_client.get_model_metadata()
+        request_type = os.getenv("ANOMALY_MODEL", "unknown")
+        result = inference_client.get_model_metadata(request_type)
     except Exception:
         raise HTTPException(
             status_code=500,

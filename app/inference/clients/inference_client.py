@@ -23,8 +23,8 @@ def process_anomaly_detection(transactions:list[dict], request_type: str) -> lis
     try:
         for transaction in transactions:
             features: Features = extract_features(transaction)
-            model_name = determine_model_name(request_type)
-            result = process_transaction(features, model_name)
+            model_name: str = determine_model_name(request_type)
+            result: PredictionResult = process_transaction(features, model_name)
             results.append(result)
 
     except Exception as e:
@@ -41,7 +41,14 @@ def determine_model_name(request_type: str) -> str:
 
     raise ValueError(f"Unsupported request type: {request_type}")
 
-def process_transaction(features: Features, model_name: str):
+def choose_model_version(stable_version: str, candidate_version: str) -> str:
+    canary_percentage = float(os.getenv("MODEL_VERSION_2_CANARY_PERCENTAGE", "0.0"))
+    if random.random() < canary_percentage:
+        return candidate_version
+    return stable_version
+
+
+def process_transaction(features: Features, model_name: str) -> PredictionResult:
     mode = os.getenv("MODEL_ROLLOUT_MODE", "stable")
     stable_version = os.getenv("STABLE_MODEL_VERSION", "1")
     candidate_version = os.getenv("CANDIDATE_MODEL_VERSION", "2")
@@ -63,12 +70,6 @@ def process_transaction(features: Features, model_name: str):
         return stable
 
     raise ValueError(f"Unknown rollout mode: {mode}")
-
-def choose_model_version(stable_version: str, candidate_version: str) -> str:
-    canary_percentage = float(os.getenv("MODEL_VERSION_2_CANARY_PERCENTAGE", "0.0"))
-    if random.random() < canary_percentage:
-        return candidate_version
-    return stable_version
 
 def infer_single_version(features: Features, model_version: str, model_name: str) -> PredictionResult:
     triton_inputs: list[InferInput] = preprocess_input(features, model_version, model_name)
@@ -172,8 +173,9 @@ def record_shadow_comparison(v1: PredictionResult, v2: PredictionResult, model_n
         model_name=model_name
     ).observe(abs(v2.score - v1.score))
 
-def get_model_metadata(model_name: str):
+def get_model_metadata(request_type: str):
     try:
+        model_name = determine_model_name(request_type)
         metadata: dict = TRITON_CLIENT.get_model_metadata(model_name)
         model_metadata = {
             "name": metadata.get("name", "unknown"),
