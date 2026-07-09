@@ -2,7 +2,7 @@ import pickle
 from pathlib import Path
 from sklearn.ensemble import IsolationForest
 
-MODEL_DIR = Path("models/anomaly-detector/v1")
+MODEL_DIR = Path("training_models/anomaly-detector/v1")
 MODEL_PATH = MODEL_DIR/"model.pkl"
 
 model = IsolationForest(

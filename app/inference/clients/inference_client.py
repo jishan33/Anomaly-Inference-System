@@ -8,11 +8,10 @@ import time
 import tritonclient.http as httpclient
 
 from app.inference.features import extract_features, Features
-from app.inference.model import PredictionResult
+from app.inference.config import PredictionResult
 from app.shared.metrics import WORKER_TRITON_REQUEST_LATENCY_SECONDS, WORKER_TRITON_SERIALIZATION_SECONDS, \
     WORKER_TRITON_DESERIALIZATION_SECONDS, PREDICTION_RESULT_TOTAL, PREDICTION_SCORE_HISTOGRAM, \
     PREDICTION_AGREEMENT_TOTAL, PREDICTION_DISAGREEMENT_TOTAL, PREDICTION_SCORE_DIFF
-from app.shared.redis import redis_client
 from tritonclient.http import InferResult, InferRequestedOutput, InferInput
 
 logger = logging.getLogger(__name__)

@@ -39,6 +39,15 @@ DEAD_LETTER_QUEUE = "dead_letter_queue"
 RawJob = bytes | str
 OptionalRawJob = RawJob | None
 
-class Tier(Enum):
-    VIP = 1
-    FREE = 2
+
+class PredictionResult(NamedTuple):
+    is_anomaly: bool
+    score: float
+    tier: str
+    model_version: str
+
+
+class PredictRequest(BaseModel):
+    customer_token:str
+    amount: float = Field(...,gt=0)
+    tier: str

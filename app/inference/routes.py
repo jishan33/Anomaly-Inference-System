@@ -1,17 +1,17 @@
 import json
+import logging
+import os
+from http.client import responses
 
 from fastapi import APIRouter, HTTPException
 from app.inference.clients import inference_client
 from app.shared.redis import redis_client
-from app.inference.model import PredictRequest, model_instance
+from app.inference.config import PredictRequest
 from app.inference.queue_service import enqueue_job
 from app.shared.redis import redis_circuit_breaker
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
-# @router.post(path="/predict", response_model = PredictResponse)
-# async def predict(req: PredictRequest):
-#     result = run_inference(req.dict())
-#     return result
 
 @router.post(path="/predict_async")
 async def predict_async(req: PredictRequest):
