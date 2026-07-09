@@ -80,15 +80,86 @@ Built as part of an **AI Infrastructure Engineer** transition roadmap to explore
 
 # ⚡ Quick Start
 
+## 1. Build Docker Images
+
+Build the application image:
+
 ```bash
-# Train the model
-python scripts/train_model.py
+docker build -t anomaly-inference-system:latest .
+```
 
-# Start local services
-docker compose up
+Build the Triton image:
 
-# Deploy to Kubernetes
+```bash
+docker build -t triton:latest ./triton
+```
+
+> If you are already inside the `triton/` directory, run:
+>
+> ```bash
+> docker build -t triton:latest .
+> ```
+
+---
+
+## 2. Deploy to Kubernetes
+
+Apply all Kubernetes manifests:
+
+```bash
 kubectl apply -f k8s/
+```
+
+Restart the main deployments:
+
+```bash
+kubectl rollout restart deployment triton
+kubectl rollout restart deployment anomaly-inference-system
+kubectl rollout restart deployment shared-worker
+kubectl rollout restart deployment vip-worker
+```
+
+For additional deployable services, check the manifests under:
+
+```text
+k8s/
+```
+
+---
+
+## 3. Access Metrics and Dashboards
+
+Forward Prometheus:
+
+```bash
+kubectl port-forward svc/prometheus-service 9090:9090
+```
+
+Open Prometheus:
+
+```text
+http://localhost:9090
+```
+
+Forward Grafana:
+
+```bash
+kubectl port-forward svc/grafana-service 3000:3000
+```
+
+Open Grafana:
+
+```text
+http://localhost:3000
+```
+
+---
+
+## 4. Test APIs
+
+Open the FastAPI Swagger docs:
+```text
+http://localhost/docs
 ```
 
 ---
