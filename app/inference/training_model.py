@@ -3,20 +3,14 @@ import logging
 import pickle
 import time
 from pathlib import Path
-from typing import NamedTuple
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
+from app.inference.config import PredictionResult
 from app.inference.features import Features
 from app.shared.metrics import MODEL_LOAD_TIME
 
 logger = logging.getLogger(__name__)
-MODEL_DIR = Path("models/anomaly-detector/v1")
-
-class PredictionResult(NamedTuple):
-    is_anomaly: bool
-    score: float
-    tier: str
-    model_version: str
+MODEL_DIR = Path("training_models/anomaly-detector/v1")
 
 class Model:
     def __init__(self):
@@ -64,15 +58,6 @@ class Model:
             logger.error(f"Error loading {file_path}, details: {e}")
             return None
 
-class PredictRequest(BaseModel):
-    customer_token:str
-    amount: float = Field(...,gt=0)
-    tier: str
 
-class PredictResponse(BaseModel):
-    is_anomaly:bool
-    score: float
-
-
-# Single model instance (IMPORTANT for infra pattern)
+# Single model instance
 model_instance = Model()

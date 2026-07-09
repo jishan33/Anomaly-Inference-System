@@ -118,7 +118,7 @@ Anomaly-Inference-System/
 ├── dashboards/           # Grafana dashboards
 ├── docs/                 # Engineering documentation
 ├── scripts/              # Model training and utilities
-├── models/               # Training artifacts
+├── training_models/      # Training artifacts
 │
 ├── README.md
 ├── Dockerfile

@@ -1,17 +1,17 @@
 import json
+import logging
+import os
+from http.client import responses
 
 from fastapi import APIRouter, HTTPException
 from app.inference.clients import inference_client
 from app.shared.redis import redis_client
-from app.inference.model import PredictRequest, model_instance
+from app.inference.config import PredictRequest
 from app.inference.queue_service import enqueue_job
 from app.shared.redis import redis_circuit_breaker
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
-# @router.post(path="/predict", response_model = PredictResponse)
-# async def predict(req: PredictRequest):
-#     result = run_inference(req.dict())
-#     return result
 
 @router.post(path="/predict_async")
 async def predict_async(req: PredictRequest):
@@ -47,12 +47,20 @@ async def get_result(job_id:str):
     if not result:
         return {"status": "processing"}
 
-    return json.loads(result)
+    data =  json.loads(result)
+    return {
+        "is_anomaly": data[0],
+        "score": data[1],
+        "tier": data[2],
+        "model_version": data[3],
+    }
+
 
 @router.get("/model_metadata")
 async def get_model_metadata():
     try:
-        result = inference_client.get_model_metadata()
+        request_type = os.getenv("ANOMALY_MODEL", "unknown")
+        result = inference_client.get_model_metadata(request_type)
     except Exception:
         raise HTTPException(
             status_code=500,
