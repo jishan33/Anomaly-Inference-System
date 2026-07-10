@@ -11,31 +11,47 @@ Triton acts as the dedicated model serving layer, allowing workers to focus on q
 # Serving Architecture
 
 ```text
-                Worker
-
-                   │
-
-             Model Routing
-
-                   │
-
-                   ▼
-
-       Triton Inference Server
-
-        ┌──────────┴──────────┐
-        │                     │
-        ▼                     ▼
-
-Transaction              Volume
-Anomaly Detector     Anomaly Detector
-
-        │                     │
-        └──────────┬──────────┘
-                   ▼
-
-            Model Versioning
-             (v1, v2, ...)
+    Client
+       │
+       ▼
+    FastAPI
+       │
+       ▼
+    Redis Queue
+       │
+       ▼
+    Worker
+       │
+       ├── Load runtime config
+       │
+       ├── Resolve model alias
+       │
+       ├── Validate registry metadata
+       │
+       ▼
+    Model Registry
+       │
+       ├── model name
+       │
+       ├── aliases
+       │
+       ├── versions
+       │
+       ├── artifact paths
+       │
+       ├── status
+       │
+       └── contracts
+       │
+       ▼
+    Triton Inference Server
+       │
+       ├── transaction_anomaly_detector
+       │   ├── v1
+       │   └── v2
+       │
+       └── volume_anomaly_detector
+           └── v1
 ```
 
 ---

@@ -1,0 +1,46 @@
+models:
+  transaction_anomaly_detector:
+    description: "Detect anomalous transaction patterns"
+    owner: "ai-infra-platform"
+    serving_backend: "triton"
+    input_contract: "transaction_features_v1"
+    output_contract: "anomaly_prediction_v1"
+
+    versions:
+      "1":
+        artifact_path: "models/transaction_anomaly_detector/1"
+        status: "stable"
+        rollout_eligible: true
+        created_by: "training-pipeline"
+        notes: "Current production baseline"
+
+      "2":
+        artifact_path: "models/transaction_anomaly_detector/2"
+        status: "candidate"
+        rollout_eligible: true
+        created_by: "training-pipeline"
+        notes: "Candidate model under canary/shadow validation"
+
+    aliases:
+      stable: "1"
+      candidate: "2"
+      canary: "2"
+      shadow: "2"
+
+  volume_anomaly_detector:
+    description: "Detect abnormal transaction volume patterns"
+    owner: "ai-infra-platform"
+    serving_backend: "triton"
+    input_contract: "volume_features_v1"
+    output_contract: "anomaly_prediction_v1"
+
+    versions:
+      "1":
+        artifact_path: "models/volume_anomaly_detector/1"
+        status: "stable"
+        rollout_eligible: true
+        created_by: "training-pipeline"
+        notes: "Initial volume anomaly detector"
+
+    aliases:
+      stable: "1"

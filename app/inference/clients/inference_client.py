@@ -1,14 +1,12 @@
-import json
 import logging
 import os
-import random
-
 import numpy as np
 import time
 import tritonclient.http as httpclient
 
 from app.inference.features import extract_features, Features
 from app.inference.config import PredictionResult
+from app.inference.model_selection import determine_model_name, determine_model_versions_based_on_rollout_mode
 from app.shared.metrics import WORKER_TRITON_REQUEST_LATENCY_SECONDS, WORKER_TRITON_SERIALIZATION_SECONDS, \
     WORKER_TRITON_DESERIALIZATION_SECONDS, PREDICTION_RESULT_TOTAL, PREDICTION_SCORE_HISTOGRAM, \
     PREDICTION_AGREEMENT_TOTAL, PREDICTION_DISAGREEMENT_TOTAL, PREDICTION_SCORE_DIFF
@@ -18,12 +16,12 @@ logger = logging.getLogger(__name__)
 
 TRITON_CLIENT = httpclient.InferenceServerClient(url="triton:8000")
 
-def process_anomaly_detection(transactions:list[dict], request_type: str) -> list[PredictionResult]:
+def process_anomaly_detection(transactions:list[dict]) -> list[PredictionResult]:
     results = []
     try:
         for transaction in transactions:
             features: Features = extract_features(transaction)
-            model_name: str = determine_model_name(request_type)
+            model_name: str = determine_model_name()
             result: PredictionResult = process_transaction(features, model_name)
             results.append(result)
 
@@ -32,44 +30,17 @@ def process_anomaly_detection(transactions:list[dict], request_type: str) -> lis
 
     return results
 
-def determine_model_name(request_type: str) -> str:
-    if request_type == "transaction_anomaly":
-        return "transaction_anomaly_detector"
-
-    if request_type == "volume_anomaly":
-        return "volume_anomaly_detector"
-
-    raise ValueError(f"Unsupported request type: {request_type}")
-
-def choose_model_version(stable_version: str, candidate_version: str) -> str:
-    canary_percentage = float(os.getenv("MODEL_VERSION_2_CANARY_PERCENTAGE", "0.0"))
-    if random.random() < canary_percentage:
-        return candidate_version
-    return stable_version
-
-
 def process_transaction(features: Features, model_name: str) -> PredictionResult:
-    mode = os.getenv("MODEL_ROLLOUT_MODE", "stable")
-    stable_version = os.getenv("STABLE_MODEL_VERSION", "1")
-    candidate_version = os.getenv("CANDIDATE_MODEL_VERSION", "2")
+    versions = determine_model_versions_based_on_rollout_mode(model_name)
+    logger.info(f"Versions: {versions}")
 
-    if mode == "stable":
-        return infer_single_version(features, stable_version, model_name)
+    stable = infer_single_version(features, versions.primary_version, model_name)
 
-    if mode == "canary":
-        version = choose_model_version(
-            stable_version = stable_version,
-            candidate_version=candidate_version
-        )
-        return infer_single_version(features, version, model_name)
+    if versions.shadow_version is not None:
+        shadow = infer_single_version(features, versions.shadow_version, model_name)
+        record_shadow_comparison(stable, shadow, model_name)
 
-    if mode == "shadow":
-        stable = infer_single_version(features, stable_version, model_name)
-        candidate = infer_single_version(features, candidate_version, model_name)
-        record_shadow_comparison(stable, candidate, model_name)
-        return stable
-
-    raise ValueError(f"Unknown rollout mode: {mode}")
+    return stable
 
 def infer_single_version(features: Features, model_version: str, model_name: str) -> PredictionResult:
     triton_inputs: list[InferInput] = preprocess_input(features, model_version, model_name)
@@ -163,15 +134,15 @@ def postprocess_output(raw_response: InferResult, features: Features, model_vers
 
     return result
 
-def record_shadow_comparison(v1: PredictionResult, v2: PredictionResult, model_name: str) -> None:
-    if v1.is_anomaly == v2.is_anomaly:
+def record_shadow_comparison(stable_version: PredictionResult, shadow_version: PredictionResult, model_name: str) -> None:
+    if stable_version.is_anomaly == shadow_version.is_anomaly:
         PREDICTION_AGREEMENT_TOTAL.labels(model_name=model_name).inc()
     else:
         PREDICTION_DISAGREEMENT_TOTAL.labels(model_name=model_name).inc()
 
     PREDICTION_SCORE_DIFF.labels(
         model_name=model_name
-    ).observe(abs(v2.score - v1.score))
+    ).observe(abs(shadow_version.score - stable_version.score))
 
 def get_model_metadata(request_type: str):
     try:
