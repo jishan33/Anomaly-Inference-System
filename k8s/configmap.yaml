@@ -9,7 +9,7 @@ data:
   REDIS_HOST: "redis"
   REDIS_PORT: "6379"
 
-  MODEL_ROLLOUT_MODE: "canary"   # stable | canary | shadow
+  MODEL_ROLLOUT_MODE: "canary"   # stable | shadow | canary
   MODEL_CANARY_FRACTION: "0.05"
 
   ANOMALY_MODEL: "transaction_anomaly" # transaction_anomaly | volume_anomaly
