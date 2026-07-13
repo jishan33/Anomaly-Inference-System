@@ -23,9 +23,8 @@ models:
 
     aliases:
       stable: "1"
-      candidate: "2"
-      canary: "2"
       shadow: "2"
+      canary: "2"
 
   volume_anomaly_detector:
     description: "Detect abnormal transaction volume patterns"
