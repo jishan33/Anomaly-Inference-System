@@ -209,3 +209,13 @@ If the green environment shows unsafe behavior, rollback is performed by routing
 This project does not implement a full blue-green deployment system locally. Instead, it documents how the 
 current worker/Triton architecture could support blue-green if managed by Kubernetes, Argo Rollouts, Istio, 
 or another production deployment platform. 
+
+
+## Rollout Strategy Comparison
+
+| Strategy | Level | Traffic Behavior | User Impact | Rollback Method |
+|---|---|---|---|---|
+| Shadow Testing | Model behavior | Candidate receives copied traffic only | No direct user impact | Stop shadow comparison |
+| Canary Rollout | Model/version routing | Candidate receives a small percentage of real traffic | Limited user exposure | Set `MODEL_ROLLOUT_MODE` back to `stable` |
+| Blue-Green Deployment | Environment deployment | Traffic switches between blue and green stacks | Full environment switch | Route traffic back to blue |
+| Feature Flag Rollout | Control plane | External system controls rollout percentage or eligibility | Gradual or targeted exposure | Disable or reduce flag |
