@@ -147,3 +147,65 @@ Grafana/Prometheus:
 validate model behaviour and rollout safety
 ```
 
+## Production Rollout Control in Real Systems
+
+In this project, rollout behavior is controlled through Kubernetes runtime configuration such as `MODEL_ROLLOUT_MODE` and canary percentage settings.
+
+In a production environment, this responsibility would usually be handled by a deployment platform, feature flag system, service mesh, or 
+progressive delivery controller.
+
+The application should not own the entire rollout platform. Instead, it should expose clear control points:
+
+- model name
+- model alias 
+- rollout mode 
+- canary percentage
+- rollout eligibility 
+- model version metadata 
+
+External systems can then update these points safely.
+
+For Example: 
+- Feature flag controls rollout percentage
+- Deployment platform controls worker/Triton release
+- Model registry controls stable/candidate aliases
+- Observability validates promotion safety
+
+```Text
+    Feature Flag / Deployment Platform
+            │
+            ▼
+    Rollout Configuration
+            │
+            ▼
+    Worker model_selection
+            │
+            ▼
+    Model Registry
+            │
+            ▼
+    Triton Model Version
+```
+
+## Blue-Green Deployment in Real Systems
+
+Blue-green deployment is an environment-level rollout strategy, while shadow testing is a 
+model-behavior validation strategy.
+
+In shadow testing, the candidate model receives copied production traffic, but its response is not returned
+to the user. This is useful for comparing predictions, scores, latency, and output distributions before exposing
+users to the candidate version.
+
+In blue-green deployment, two separate serving environments are maintained: 
+
+```Text
+Blue = Current stable production stack
+Green = New candidate serving stack
+```
+
+Traffic is switched at the ingress, service mesh, or deployment platform level. 
+If the green environment shows unsafe behavior, rollback is performed by routing traffic back to the blue environment.
+
+This project does not implement a full blue-green deployment system locally. Instead, it documents how the 
+current worker/Triton architecture could support blue-green if managed by Kubernetes, Argo Rollouts, Istio, 
+or another production deployment platform. 
