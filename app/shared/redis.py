@@ -3,7 +3,6 @@ import os
 import redis
 
 from redis import Redis
-from typing import Literal
 from app.shared.circuit_breaker import CircuitBreaker
 
 logger =logging.getLogger(__name__)
