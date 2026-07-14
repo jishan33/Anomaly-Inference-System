@@ -23,7 +23,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffryim4wk31tse"
+        "uid": "ffs1669wdlypsa"
       },
       "fieldConfig": {
         "defaults": {
@@ -107,7 +107,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ffryim4wk31tse"
+            "uid": "ffs1669wdlypsa"
           },
           "editorMode": "code",
           "expr": "sum(rate(processed_requests_total{tier=\"free\"}[1m])) \n/ \n(clamp_min(\n  sum(kube_deployment_status_replicas_available{deployment=~\"shared-worker\"}),\n   1)\n)",
@@ -122,7 +122,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffryim4wk31tse"
+        "uid": "ffs1669wdlypsa"
       },
       "fieldConfig": {
         "defaults": {
@@ -206,7 +206,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ffryim4wk31tse"
+            "uid": "ffryim4wk3tse"
           },
           "editorMode": "builder",
           "expr": "sum(rate(processed_requests_total{tier=\"vip\"}[1m])) / (clamp_min(sum(kube_deployment_status_replicas_available{deployment=~\"vip-worker\"}), 1))",
@@ -221,8 +221,9 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffryim4wk31tse"
+        "uid": "ffs1669wdlypsa"
       },
+      "description": "worker end-to-end job processing latency vs number of shared worker",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -275,19 +276,25 @@
                 "value": 80
               }
             ]
-          }
+          },
+          "unit": "s"
         },
         "overrides": [
           {
             "matcher": {
-              "id": "byValue",
-              "options": {
-                "op": "gte",
-                "reducer": "allIsZero",
-                "value": 0
-              }
+              "id": "byName",
+              "options": "Shared worker replica ( num )"
             },
-            "properties": []
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "none"
+              }
+            ]
           }
         ]
       },
@@ -316,7 +323,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ffryim4wk31tse"
+            "uid": "ffs1669wdlypsa"
           },
           "editorMode": "code",
           "expr": "histogram_quantile(\n    0.95, \n    sum by(le) (rate(worker_processing_latency_seconds_bucket{tier=\"free\"}[5m])) \n)",
@@ -327,7 +334,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ffryim4wk31tse"
+            "uid": "ffs1669wdlypsa"
           },
           "editorMode": "code",
           "expr": "sum(\n  kube_deployment_status_replicas_available{deployment=\"shared-worker\"}\n)",
@@ -343,8 +350,9 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffryim4wk31tse"
+        "uid": "ffs1669wdlypsa"
       },
+      "description": "worker end-to-end job processing latency vs number of VIP worker",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -397,19 +405,25 @@
                 "value": 80
               }
             ]
-          }
+          },
+          "unit": "s"
         },
         "overrides": [
           {
             "matcher": {
-              "id": "byValue",
-              "options": {
-                "op": "gte",
-                "reducer": "allIsZero",
-                "value": 0
-              }
+              "id": "byName",
+              "options": "VIP worker replica ( num )"
             },
-            "properties": []
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
           }
         ]
       },
@@ -438,7 +452,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ffryim4wk31tse"
+            "uid": "ffs1669wdlypsa"
           },
           "editorMode": "code",
           "expr": "histogram_quantile(\n    0.95, \n    sum by(le) (rate(worker_processing_latency_seconds_bucket{tier=\"vip\"}[5m])) \n)",
@@ -449,23 +463,23 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ffryim4wk31tse"
+            "uid": "ffs1669wdlypsa"
           },
           "editorMode": "code",
           "expr": "sum(\n  kube_deployment_status_replicas_available{deployment=\"vip-worker\"}\n)",
           "instant": false,
-          "legendFormat": "Shared worker replica ( num )",
+          "legendFormat": "VIP worker replica ( num )",
           "range": true,
           "refId": "B"
         }
       ],
-      "title": "P95 Latency vs Shared Worker Replicas",
+      "title": "P95 Latency vs VIP Worker Replicas",
       "type": "timeseries"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffryim4wk31tse"
+        "uid": "ffs1669wdlypsa"
       },
       "fieldConfig": {
         "defaults": {
@@ -549,10 +563,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ffryim4wk31tse"
+            "uid": "ffs1669wdlypsa"
           },
           "editorMode": "code",
-          "expr": "sum(rate(nv_inference_request_success[1m])) / (clamp_min(sum(kube_deployment_status_replicas_available{deployment=~\"triton\"}), 1))",
+          "expr": "sum(rate(nv_inference_request_success[1m])) \n/ \n(clamp_min(sum(kube_deployment_status_replicas_available{deployment=~\"triton\"}), \n1))",
           "legendFormat": "{{label_name}}",
           "range": true,
           "refId": "A"
@@ -564,8 +578,9 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffryim4wk31tse"
+        "uid": "ffs1669wdlypsa"
       },
+      "description": "1.0  = no batching\n4.0  = average batch size 4\n8.0  = near max batch size",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -648,22 +663,22 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ffryim4wk31tse"
+            "uid": "ffs1669wdlypsa"
           },
           "editorMode": "code",
-          "expr": "max by(tier) (current_batch_size)",
+          "expr": "sum (rate(nv_inference_request_success{model=\"transaction_anomaly_detector\"}[1m])) \n/ clamp_min(\n  (sum (rate(nv_inference_exec_count{model=\"transaction_anomaly_detector\"}[1m]))),\n  0.001)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Max Batch Size ",
+      "title": "Triton Effective Batch Size ",
       "type": "timeseries"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffryim4wk31tse"
+        "uid": "ffs1669wdlypsa"
       },
       "fieldConfig": {
         "defaults": {
@@ -747,7 +762,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ffryim4wk31tse"
+            "uid": "ffs1669wdlypsa"
           },
           "editorMode": "code",
           "expr": "sum(inference_queue_depth{tier=\"free\"})/ (clamp_min(sum(kube_deployment_status_replicas_available{deployment=~\"shared-worker\"}), 1))",
@@ -762,7 +777,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffryim4wk31tse"
+        "uid": "ffs1669wdlypsa"
       },
       "fieldConfig": {
         "defaults": {
@@ -846,7 +861,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ffryim4wk31tse"
+            "uid": "ffs1669wdlypsa"
           },
           "editorMode": "builder",
           "expr": "sum(inference_queue_depth{tier=\"vip\"}) / (clamp_min(sum(kube_deployment_status_replicas_available{deployment=~\"vip-worker\"}), 1))",
@@ -861,8 +876,9 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffryim4wk31tse"
+        "uid": "ffs1669wdlypsa"
       },
+      "description": "Average CPU seconds used per processed request. Only show this metric if there were enough requests to make the ratio meaningful.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -916,7 +932,7 @@
               }
             ]
           },
-          "unit": "core -s / req"
+          "unit": "core-s / req"
         },
         "overrides": []
       },
@@ -945,22 +961,22 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ffryim4wk31tse"
+            "uid": "ffs1669wdlypsa"
           },
           "editorMode": "code",
-          "expr": "(\n  sum(rate(process_cpu_seconds_total{app=\"shared-worker\"}[5m]))\n  /\n  sum(rate(processed_requests_total{tier=\"free\"}[5m]))\n)\nand\nsum(rate(processed_requests_total{tier=\"free\"}[5m])) > 0.01",
+          "expr": "sum(increase(process_cpu_seconds_total{app=\"shared-worker\"}[10m]))\n/\nsum(increase(processed_requests_total{tier=\"free\"}[10m]))\nand\nsum(increase(processed_requests_total{tier=\"free\"}[10m])) > 10",
           "legendFormat": "{{label_name}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "CPU Cost per Request - Shared Worker",
+      "title": "CPU Seconds per Processed Request - Shared Worker",
       "type": "timeseries"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffryim4wk31tse"
+        "uid": "ffs1669wdlypsa"
       },
       "fieldConfig": {
         "defaults": {
@@ -1044,16 +1060,16 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "ffryim4wk31tse"
+            "uid": "ffs1669wdlypsa"
           },
           "editorMode": "code",
-          "expr": "(\n  sum(rate(process_cpu_seconds_total{app=\"vip-worker\"}[5m]))\n  /\n  sum(rate(processed_requests_total{tier=\"vip\"}[5m]))\n)\nand\nsum(rate(processed_requests_total{tier=\"vip\"}[5m])) > 0.01",
+          "expr": "sum(increase(process_cpu_seconds_total{app=\"vip-worker\"}[10m]))\n/\nsum(increase(processed_requests_total{tier=\"vip\"}[10m]))\nand\nsum(increase(processed_requests_total{tier=\"vip\"}[10m])) > 10",
           "legendFormat": "{{label_name}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "CPU Cost per Request - VIP Worker",
+      "title": "CPU Seconds per Processed Request - VIP Worker",
       "type": "timeseries"
     }
   ],
@@ -1071,6 +1087,6 @@
   "timezone": "browser",
   "title": "Cost / Efficiency Signals",
   "uid": "adfggll",
-  "version": 40,
+  "version": 15,
   "weekStart": ""
 }
