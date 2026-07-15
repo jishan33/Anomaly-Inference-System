@@ -1,13 +1,12 @@
+from datetime import datetime, timezone
 import json
 import logging
-import os
-from http.client import responses
 
 from fastapi import APIRouter, HTTPException
 from app.inference.clients import inference_client
 from app.shared.redis import redis_client
 from app.inference.config import PredictRequest
-from app.inference.queue_service import enqueue_job
+from app.inference.queue_service import enqueue_job, QueueJob
 from app.shared.redis import redis_circuit_breaker
 
 logger = logging.getLogger(__name__)
@@ -16,7 +15,7 @@ router = APIRouter()
 @router.post(path="/predict_async")
 async def predict_async(req: PredictRequest):
     try:
-        job_id = enqueue_job(
+        job: QueueJob = enqueue_job(
             transaction=req.model_dump(),
         )
     except Exception:
@@ -24,11 +23,14 @@ async def predict_async(req: PredictRequest):
             status_code=503,
             detail="Async inference queue is temporarily unavailable"
         )
+    created_at = job.get("created_at")
+    created_at_utc = datetime.fromtimestamp(created_at, tz=timezone.utc)
 
     return  {
-        "job_id": job_id,
+        "job_id": job.get("job_id"),
         "status": "queued",
-        "tier": req.tier
+        "tier": job.get("tier"),
+        "created_at": created_at_utc
     }
 
 @router.get("/result/{job_id}")

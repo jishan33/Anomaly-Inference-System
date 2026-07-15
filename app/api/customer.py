@@ -1,15 +1,22 @@
 import string
 import secrets
 import time
+from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-class Customer(BaseModel):
-    customer_token:str = Field(
+# This binds your regex, min/max lengths, and str type into a single definition.
+CustomerTokenStr = Annotated[
+    str,
+    Field(
         min_length=15,
         max_length=60,
         pattern=r"^C_[A-Za-z0-9]{10,40}$"
-    ),
+    )
+]
+
+class Customer(BaseModel):
+    customer_token: CustomerTokenStr
     created_at: float
 
 def generate_exact_customer_token(length: int = 32) -> str:

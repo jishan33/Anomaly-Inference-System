@@ -1,9 +1,11 @@
 from typing import NamedTuple
 
+from app.inference.config import Tier
+
 
 class Features(NamedTuple):
     amount: int
-    tier: str
+    tier: Tier
 
 
 def extract_features(transaction:dict) -> Features:

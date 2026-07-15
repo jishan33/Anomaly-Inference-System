@@ -3,7 +3,8 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from app.inference.config import RawJob
+from app.api.customer import Customer
+from app.inference.config import RawJob, PredictRequest, Tier
 from app.inference.queue_service import QueueJob
 
 
