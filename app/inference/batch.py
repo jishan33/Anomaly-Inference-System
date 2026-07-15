@@ -5,7 +5,7 @@ import time
 from typing import List
 
 from app.shared.redis import redis_client
-from app.inference.config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob
+from app.inference.config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob, PredictionResult, Tier
 from app.inference.clients.inference_client import process_anomaly_detection
 from app.shared.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS, \
     REDIS_OPERATION_FAILURES_TOTAL
@@ -69,7 +69,7 @@ def fetch_batch(queue_name: str, max_batch_size: int, max_wait_time: float) -> L
 
     return batch
 
-def process_batch(queue_name: str, tier: str, max_batch_size: int, max_wait_time: float, worker_role: str) -> bool:
+def process_batch(queue_name: str, tier: Tier, max_batch_size: int, max_wait_time: float, worker_role: str) -> bool:
     """
     Fetches, tracks metrics for, and executes a batch of jobs.
     Returns True if work was processed, False if queue was empty.
@@ -103,7 +103,7 @@ def process_batch(queue_name: str, tier: str, max_batch_size: int, max_wait_time
     ######## Future GPU work ########
     start_inference = time.time()
     try:
-        results = process_anomaly_detection(transactions)
+        results: List[PredictionResult]= process_anomaly_detection(transactions)
 
         latency = time.time() - start_inference
         WORKER_PROCESSING_LATENCY.labels(worker_role=worker_role, tier=tier).observe(latency)

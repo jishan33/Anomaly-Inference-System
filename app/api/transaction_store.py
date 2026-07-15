@@ -7,6 +7,7 @@ from faker import Faker
 from pydantic import BaseModel
 from typing import List
 
+from app.api.customer import CustomerTokenStr, generate_exact_customer_token
 from app.shared import redis
 from app.shared.metrics import VOLUME_GAUGE
 from app.api.retry import retry_with_backoff
@@ -21,7 +22,7 @@ class Transaction(BaseModel):
     amount: float
     created_at: str
     type: str
-    customer_token: str
+    customer_token: CustomerTokenStr
     transaction_token: str
 
 # Faker
@@ -32,7 +33,7 @@ def generate_random_transaction():
         amount=fake.pyfloat(left_digits=6, right_digits=2, positive=True, min_value=0.01),
         created_at=random_date_obj.isoformat(),
         type=random.choice(["PAYMENT", "REFUND", "TRANSFER"]),
-        customer_token=f"C_{fake.hexify(text='^^^^^^^^^^^^^^')}",
+        customer_token=generate_exact_customer_token(),
         transaction_token=f"TXN_{fake.uuid4()[:8].upper()}"
     )
 
@@ -105,7 +106,7 @@ def get_volume(request_id: str):
         )
         return 0
 
-def get_customer_transaction_volume(customer_token: str, request_id: str):
+def get_customer_transaction_volume(customer_token: CustomerTokenStr, request_id: str):
     """To get a SPECIFIC customer's volume, we need a per-customer Sorted Set"""
     customer_index_key = f"customer_index:{customer_token}"
     now = time.time()
@@ -142,7 +143,7 @@ def safe_get_volume(request_id: str = "unknown") -> int:
     except Exception:
         return 0
 
-def safe_get_customer_transaction_volume(customer_token: str, request_id: str = "unknown") -> int:
+def safe_get_customer_transaction_volume(customer_token: CustomerTokenStr, request_id: str = "unknown") -> int:
     try:
         return get_customer_transaction_volume(customer_token, request_id)
     except Exception:

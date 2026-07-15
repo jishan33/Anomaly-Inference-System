@@ -144,9 +144,9 @@ def record_shadow_comparison(stable_version: PredictionResult, shadow_version: P
         model_name=model_name
     ).observe(abs(shadow_version.score - stable_version.score))
 
-def get_model_metadata(request_type: str):
+def get_model_metadata():
     try:
-        model_name = determine_model_name(request_type)
+        model_name = determine_model_name()
         metadata: dict = TRITON_CLIENT.get_model_metadata(model_name)
         model_metadata = {
             "name": metadata.get("name", "unknown"),

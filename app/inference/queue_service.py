@@ -5,7 +5,7 @@ import time
 import uuid
 from typing import TypedDict, Any
 
-from app.inference.config import VIP_QUEUE, FREE_QUEUE, RawJob, DEAD_LETTER_QUEUE
+from app.inference.config import VIP_QUEUE, FREE_QUEUE, RawJob, DEAD_LETTER_QUEUE, Tier
 from app.shared.metrics import QUEUE_INGRESS_TOTAL, DEAD_LETTER_QUEUE_JOBS_TOTAL, DEAD_LETTER_QUEUE_PUSH_ATTEMPTS_TOTAL, \
     DLQ_PUSH_FAILURE_TOTAL, REDIS_OPERATION_FAILURES_TOTAL
 from app.shared.redis import redis_circuit_breaker, redis_client
@@ -16,7 +16,7 @@ class QueueJob(TypedDict):
     job_id: str
     transaction: dict
     created_at: float
-    tier: str
+    tier: Tier
     retry_count: int
 
 class DlqPayload(TypedDict):
@@ -24,9 +24,9 @@ class DlqPayload(TypedDict):
     reason: str
     failed_at: float
 
-def enqueue_job(transaction: dict[str, Any]) -> str:
+def enqueue_job(transaction: dict[str, Any]) -> QueueJob:
     job_id = str(uuid.uuid4())
-    tier = transaction.get("tier", "free")
+    tier : Tier = transaction.get("tier", Tier.Free)
 
     job = QueueJob(
         job_id = job_id,
@@ -35,7 +35,7 @@ def enqueue_job(transaction: dict[str, Any]) -> str:
         tier= tier,
         retry_count= 0
     )
-    queue_name = VIP_QUEUE if tier == "vip" else FREE_QUEUE
+    queue_name = VIP_QUEUE if tier == Tier.VIP else FREE_QUEUE
     try:
         redis_circuit_breaker.call(
             lambda : redis_client.rpush(
@@ -46,7 +46,7 @@ def enqueue_job(transaction: dict[str, Any]) -> str:
         )
 
         QUEUE_INGRESS_TOTAL.labels(tier).inc()
-        return job_id
+        return job
 
     except Exception as e:
         REDIS_OPERATION_FAILURES_TOTAL.labels(operation=f"redis_enqueue_{tier}").inc()

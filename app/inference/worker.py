@@ -1,11 +1,9 @@
-import json
 import logging
 import os
 import time
-import tritonclient.http as httpclient
 
 from app.inference.batch import process_batch
-from app.inference.config import FREE_QUEUE, VIP_QUEUE
+from app.inference.config import FREE_QUEUE, VIP_QUEUE, Tier
 from app.inference.scheduler import get_batch_scheduler
 from app.shared.config import setup_logging
 from prometheus_client import start_http_server
@@ -33,9 +31,9 @@ def worker_loop():
         # ----------------------------------------------------------------------
 
         if is_active_vip:
-            vip_processed = process_batch(VIP_QUEUE, "vip", schedular.vip_max_batch_size, schedular.vip_max_wait_time, WORKER_ROLE)
+            vip_processed = process_batch(VIP_QUEUE, Tier.VIP, schedular.vip_max_batch_size, schedular.vip_max_wait_time, WORKER_ROLE)
         elif is_active_shared:
-            free_processed = process_batch(FREE_QUEUE, "free", schedular.free_max_batch_size, schedular.free_max_wait_time, WORKER_ROLE)
+            free_processed = process_batch(FREE_QUEUE, Tier.Free, schedular.free_max_batch_size, schedular.free_max_wait_time, WORKER_ROLE)
 
 
         # ---------------------------------------------------------------------

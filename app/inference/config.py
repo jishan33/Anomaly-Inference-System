@@ -1,5 +1,8 @@
+from app.api.customer import CustomerTokenStr
+from enum import StrEnum
 from pydantic import BaseModel, Field
-from typing import List, NamedTuple, Tuple, TypedDict
+from typing import List, NamedTuple, Tuple
+
 
 
 # -------------------------------------------------------------------------
@@ -39,15 +42,19 @@ DEAD_LETTER_QUEUE = "dead_letter_queue"
 RawJob = bytes | str
 OptionalRawJob = RawJob | None
 
+class Tier(StrEnum) :
+    VIP = "VIP"
+    Free = "FREE"
+
 
 class PredictionResult(NamedTuple):
     is_anomaly: bool
     score: float
-    tier: str
+    tier: Tier
     model_version: str
 
 
 class PredictRequest(BaseModel):
-    customer_token:str
+    customer_token: CustomerTokenStr
     amount: float = Field(...,gt=0)
-    tier: str
+    tier: Tier
