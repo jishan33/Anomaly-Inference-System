@@ -59,8 +59,7 @@ async def get_result(job_id:str):
 @router.get("/model_metadata")
 async def get_model_metadata():
     try:
-        request_type = os.getenv("ANOMALY_MODEL", "unknown")
-        result = inference_client.get_model_metadata(request_type)
+        result = inference_client.get_model_metadata()
     except Exception:
         raise HTTPException(
             status_code=500,
