@@ -2,6 +2,7 @@ import logging
 import random
 import socket
 import traceback
+from datetime import datetime, timezone
 from typing import List
 from fastapi import FastAPI
 from fastapi import HTTPException, Request, Response
@@ -10,6 +11,7 @@ from fastapi.middleware import Middleware
 from fastapi.responses import JSONResponse
 from prometheus_client import generate_latest
 
+from app.api.customer import generate_random_customer
 from app.api.request_logging_middleware import RequestLoggingMiddleware
 from app.api.transaction_store import Transaction, safe_get_volume, redis_circuit_breaker, generate_random_transaction
 from app.inference.routes import router
@@ -25,6 +27,17 @@ app = FastAPI(
 )
 HOSTNAME = socket.gethostname()
 app.include_router(router)
+
+@app.get("/generate_customer")
+def generate_customer():
+    customer = generate_random_customer()
+    created_at = customer.created_at
+    created_at_utc = datetime.fromtimestamp(created_at, tz=timezone.utc)
+
+    return {
+        "customer_token": customer.customer_token,
+        "created_at": created_at_utc
+    }
 
 @app.get("/generate_transaction")
 def generate_transaction():
