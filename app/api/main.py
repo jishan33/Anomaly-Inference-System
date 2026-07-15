@@ -13,7 +13,7 @@ from prometheus_client import generate_latest
 
 from app.api.customer import generate_random_customer
 from app.api.request_logging_middleware import RequestLoggingMiddleware
-from app.api.transaction_store import Transaction, safe_get_volume, redis_circuit_breaker, generate_random_transaction
+from app.api.transaction import Transaction, safe_get_volume, redis_circuit_breaker, generate_random_transaction
 from app.inference.routes import router
 from app.shared.redis import redis_client
 from app.shared.config import setup_logging

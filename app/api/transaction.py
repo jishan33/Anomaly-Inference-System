@@ -2,16 +2,17 @@ import logging
 import random
 import redis
 import time
-from datetime import timezone
-from faker import Faker
-from pydantic import BaseModel
-from typing import List
 
 from app.api.customer import CustomerTokenStr, generate_exact_customer_token
 from app.shared import redis
 from app.shared.metrics import VOLUME_GAUGE
 from app.api.retry import retry_with_backoff
 from app.shared.redis import redis_circuit_breaker, redis_client
+from datetime import timezone
+from faker import Faker
+from pydantic import BaseModel
+from typing import List
+
 
 logger = logging.getLogger(__name__)
 KEY = "transactions"
