@@ -23,13 +23,13 @@ async def predict_async(req: PredictRequest):
             status_code=503,
             detail="Async inference queue is temporarily unavailable"
         )
-    created_at = job.get("created_at")
+    created_at = job.created_at
     created_at_utc = datetime.fromtimestamp(created_at, tz=timezone.utc)
 
     return  {
-        "job_id": job.get("job_id"),
+        "job_id": job.job_id,
         "status": "queued",
-        "tier": job.get("tier"),
+        "tier": job.tier,
         "created_at": created_at_utc
     }
 

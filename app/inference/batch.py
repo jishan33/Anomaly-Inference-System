@@ -47,18 +47,15 @@ def fetch_batch(queue_name: str, max_batch_size: int, max_wait_time: float) -> L
 
         try:
             validated_job: QueueJob = validate_queue_job(raw_job)
+            job_age: float = time.time() - validated_job.created_at
 
-            created_at: float =validated_job["created_at"]
-            job_age: float = time.time() - created_at
             if  job_age > JOB_TTL_SECONDS:
                 move_to_dlq(raw_job, "job_expired")
                 continue
 
-            retry_count: int = validated_job["retry_count"]
-            if retry_count >= MAX_JOB_RETRIES:
+            if validated_job.retry_count >= MAX_JOB_RETRIES:
                 move_to_dlq(raw_job, "max_retries_exceeded")
                 continue
-
 
             batch.append(validated_job)
 
@@ -93,12 +90,12 @@ def process_batch(queue_name: str, tier: Tier, max_batch_size: int, max_wait_tim
     # Track queue wait times for all items in the batch
     now = time.time()
     for job in batch:
-        queue_wait = now - job.get("created_at", now)
+        queue_wait = now - job.created_at
         QUEUE_WAIT_TIME.labels(worker_role=worker_role, tier=tier).observe(queue_wait)
 
 
     # Extract transactions for true parallel batch inference
-    transactions = [job["transaction"] for job in batch]
+    transactions = [job.transaction for job in batch]
 
     ######## Future GPU work ########
     start_inference = time.time()
@@ -111,20 +108,20 @@ def process_batch(queue_name: str, tier: Tier, max_batch_size: int, max_wait_tim
         for job in batch:
             logger.warning(f"batch_inference_failed: {e}")
 
-            job["retry_count"] = job.get("retry_count", 0) + 1
-            if job["retry_count"] >= MAX_JOB_RETRIES:
-                move_to_dlq(json.dumps(job), "batch_inference_failed")
+            job.retry_count += 1
+            if job.retry_count >= MAX_JOB_RETRIES:
+                move_to_dlq(job.json(), "batch_inference_failed")
             else:
                 try:
                     redis_circuit_breaker.call(
-                        lambda: redis_client.rpush(queue_name, json.dumps(job)),
+                        lambda: redis_client.rpush(queue_name, job.json()),
                         operation_name="redis_requeue"
                     )
                 except Exception as requeue_error:
                     REDIS_OPERATION_FAILURES_TOTAL.labels(operation="redis_requeue").inc()
                     logger.error(
                         f"Failed to requeue job "
-                        f"{job.get('job_id')}: {requeue_error}"
+                        f"{job.job_id}: {requeue_error}"
                     )
                     continue
         return False
@@ -133,12 +130,10 @@ def process_batch(queue_name: str, tier: Tier, max_batch_size: int, max_wait_tim
     for job, result in zip(batch, results):
         try:
             redis_circuit_breaker.call(
-                lambda: redis_client.set(f"job_result:{job['job_id']}", json.dumps(result)),
+                lambda: redis_client.set(f"job_result:{job.job_id}", json.dumps(result)),
                 operation_name="redis_set_result"
             )
             PROCESSED_REQUESTS.labels(result.tier).inc()
-            logger.info(f"Processed job {job['job_id']}")
-            logger.info(f"Processed job result {result}")
         except Exception as e:
             REDIS_OPERATION_FAILURES_TOTAL.labels(operation="redis_set_result").inc()
             logger.error(f"redis unavailable during set_result: {e}")
