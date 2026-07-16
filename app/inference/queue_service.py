@@ -5,6 +5,8 @@ import time
 import uuid
 from typing import TypedDict, Any
 
+from pydantic.v1 import BaseModel
+
 from app.inference.config import VIP_QUEUE, FREE_QUEUE, RawJob, DEAD_LETTER_QUEUE, Tier
 from app.shared.metrics import QUEUE_INGRESS_TOTAL, DEAD_LETTER_QUEUE_JOBS_TOTAL, DEAD_LETTER_QUEUE_PUSH_ATTEMPTS_TOTAL, \
     DLQ_PUSH_FAILURE_TOTAL, REDIS_OPERATION_FAILURES_TOTAL
@@ -12,7 +14,7 @@ from app.shared.redis import redis_circuit_breaker, redis_client
 
 logger = logging.getLogger(__name__)
 
-class QueueJob(TypedDict):
+class QueueJob(BaseModel):
     job_id: str
     transaction: dict
     created_at: float
@@ -35,12 +37,13 @@ def enqueue_job(transaction: dict[str, Any]) -> QueueJob:
         tier= tier,
         retry_count= 0
     )
+
     queue_name = VIP_QUEUE if tier == Tier.VIP else FREE_QUEUE
     try:
         redis_circuit_breaker.call(
             lambda : redis_client.rpush(
                 queue_name,
-                json.dumps(job)
+                job.json()
             ),
             operation_name=f"redis_enqueue_{tier}"
         )
