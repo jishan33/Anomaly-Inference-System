@@ -6,7 +6,8 @@ import tritonclient.http as httpclient
 
 from app.inference.features import extract_features, Features
 from app.inference.config import PredictionResult
-from app.inference.model_selection import determine_model_name, determine_model_versions_based_on_rollout_mode
+from app.inference.model_selection import determine_model_name, determine_model_versions_based_on_rollout_mode, \
+    SelectedModelVersions
 from app.shared.metrics import WORKER_TRITON_REQUEST_LATENCY_SECONDS, WORKER_TRITON_SERIALIZATION_SECONDS, \
     WORKER_TRITON_DESERIALIZATION_SECONDS, PREDICTION_RESULT_TOTAL, PREDICTION_SCORE_HISTOGRAM, \
     PREDICTION_AGREEMENT_TOTAL, PREDICTION_DISAGREEMENT_TOTAL, PREDICTION_SCORE_DIFF
@@ -21,8 +22,7 @@ def process_anomaly_detection(transactions:list[dict]) -> list[PredictionResult]
     try:
         for transaction in transactions:
             features: Features = extract_features(transaction)
-            model_name: str = determine_model_name()
-            result: PredictionResult = process_transaction(features, model_name)
+            result: PredictionResult = process_transaction(features)
             results.append(result)
 
     except Exception as e:
@@ -30,8 +30,9 @@ def process_anomaly_detection(transactions:list[dict]) -> list[PredictionResult]
 
     return results
 
-def process_transaction(features: Features, model_name: str) -> PredictionResult:
-    versions = determine_model_versions_based_on_rollout_mode(model_name)
+def process_transaction(features: Features) -> PredictionResult:
+    model_name: str = determine_model_name()
+    versions: SelectedModelVersions = determine_model_versions_based_on_rollout_mode(model_name)
     logger.info(f"Versions: {versions}")
 
     stable = infer_single_version(features, versions.primary_version, model_name)

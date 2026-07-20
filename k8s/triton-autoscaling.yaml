@@ -7,8 +7,8 @@ spec:
   scaleTargetRef:
     name: triton
 
-  minReplicaCount: 1
-  maxReplicaCount: 3
+  minReplicaCount: 3
+  maxReplicaCount: 5
 
   triggers:
     - type: prometheus
