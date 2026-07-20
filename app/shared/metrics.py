@@ -68,13 +68,6 @@ QUEUE_DEPTH = Gauge(
 
 )
 
-WORKER_PROCESSING_LATENCY = Histogram(
-    "worker_processing_latency_seconds",
-    "Time spent processing inference jobs",
-    ["worker_role", "tier"]
-
-)
-
 QUEUE_WAIT_TIME = Histogram(
     "queue_wait_latency_seconds",
     "Time spent on queue waiting",
@@ -171,6 +164,19 @@ MODEL_LOAD_TIME = Histogram(
 
 
 # Triton Inference Server Client
+
+WORKER_PROCESSING_LATENCY = Histogram(
+    "worker_processing_latency_seconds",
+    "Time spent processing inference jobs",
+    ["worker_role", "tier"]
+
+)
+
+WORKER_PROCESSING_FAILURES_TOTAL = Counter(
+    "worker_processing_failures_total",
+    "Total number of worker processing failures by stage",
+    ["stage", "error_type", "tier", "model_name", "model_version"],
+)
 
 WORKER_TRITON_REQUEST_LATENCY_SECONDS = Histogram(
     "worker_triton_request_latency_seconds",

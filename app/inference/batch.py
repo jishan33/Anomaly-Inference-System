@@ -10,7 +10,6 @@ from app.inference.clients.inference_client import process_anomaly_detection
 from app.shared.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS, \
     REDIS_OPERATION_FAILURES_TOTAL
 from app.inference.queue_service import QueueJob, get_queue_depth, move_to_dlq
-from app.inference.validate import validate_queue_job
 from app.shared.redis import redis_circuit_breaker
 
 logger = logging.getLogger(__name__)
@@ -46,7 +45,7 @@ def fetch_batch(queue_name: str, max_batch_size: int, max_wait_time: float) -> L
             break
 
         try:
-            validated_job: QueueJob = validate_queue_job(raw_job)
+            validated_job: QueueJob = QueueJob.parse_raw(raw_job)
             job_age: float = time.time() - validated_job.created_at
 
             if  job_age > JOB_TTL_SECONDS:
