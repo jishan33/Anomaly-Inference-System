@@ -24,6 +24,12 @@ ERROR_COUNT = Counter(
     ["type", "status", "endpoint"]
 )
 
+LOAD_SHED_REQUESTS_TOTAL = Counter(
+    "load_shed_requests_total",
+    "Total number of requests intentionally rejected by load shedding",
+    ["tier", "reason"]
+)
+
 # ------------------------
 # Anomaly / Business Metrics
 # ------------------------
