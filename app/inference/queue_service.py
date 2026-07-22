@@ -4,7 +4,6 @@ import logging
 import time
 import uuid
 from typing import TypedDict, Any
-
 from pydantic.v1 import BaseModel
 
 from app.inference.config import VIP_QUEUE, FREE_QUEUE, RawJob, DEAD_LETTER_QUEUE, Tier
@@ -65,6 +64,7 @@ def get_queue_depth(queue_name: str) -> int|None:
             operation_name=f"redis_llen_{queue_name}"
         )
         return queue_depth
+
     except Exception as e:
         REDIS_OPERATION_FAILURES_TOTAL.labels(operation=f"redis_llen_{queue_name}").inc()
         logger.error(f"redis is unavailable for llen operation: {e}")

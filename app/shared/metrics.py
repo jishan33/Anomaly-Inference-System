@@ -86,6 +86,19 @@ CURRENT_BATCH_TIMEOUT = Gauge(
     ["tier"]
 )
 
+WORKER_BATCH_SIZE = Histogram(
+    "worker_batch_size",
+    "Observed number of jobs included in each worker batch",
+    ["worker_role", "tier", "flush_reason"],
+    buckets=(1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048),
+)
+
+WORKER_BATCH_FLUSH_TOTAL = Counter(
+    "worker_batch_flush_total",
+    "Total number of worker batch flushes",
+    ["worker_role", "tier", "reason"]
+)
+
 PROCESSED_REQUESTS = Counter(
     "processed_requests_total",
     "Total processed inference requests",
