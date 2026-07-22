@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 from app.inference.clients import inference_client
 from app.shared.redis import redis_client
 from app.inference.config import PredictRequest
-from app.inference.queue_service import enqueue_job, QueueJob
+from app.inference.queue_service import enqueue_job, QueueJob, QueueFullError, RedisUnavailableError
 from app.shared.redis import redis_circuit_breaker
 
 logger = logging.getLogger(__name__)
@@ -18,11 +18,17 @@ async def predict_async(req: PredictRequest):
         job: QueueJob = enqueue_job(
             transaction=req.model_dump(),
         )
+
+    except QueueFullError as e:
+        raise HTTPException(status_code=429, detail=str(e))
+
+    except RedisUnavailableError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
     except Exception:
-        raise HTTPException(
-            status_code=503,
-            detail="Async inference queue is temporarily unavailable"
-        )
+        logger.exception("Unexpected enqueue failure")
+        raise HTTPException(status_code=503, detail="Failed to enqueue job")
+
     created_at = job.created_at
     created_at_utc = datetime.fromtimestamp(created_at, tz=timezone.utc)
 

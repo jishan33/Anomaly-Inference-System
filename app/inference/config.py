@@ -32,8 +32,12 @@ RATIO_THRESHOLDS: List[Tuple[int, float]] = [
 #-------------------
 # Queue Jobs
 #-------------------
-FREE_QUEUE = "free_jobs"
-VIP_QUEUE = "vip_jobs"
+class Queue(StrEnum):
+    FREE_QUEUE = "free_jobs"
+    VIP_QUEUE = "vip_jobs"
+
+FREE_QUEUE_MAX_LOAD = 1000
+VIP_QUEUE_MAX_LOAD = 500
 
 JOB_TTL_SECONDS = 30
 MAX_JOB_RETRIES = 3
@@ -42,7 +46,7 @@ DEAD_LETTER_QUEUE = "dead_letter_queue"
 RawJob = bytes | str
 OptionalRawJob = RawJob | None
 
-class Tier(StrEnum) :
+class Tier(StrEnum):
     VIP = "VIP"
     Free = "FREE"
 

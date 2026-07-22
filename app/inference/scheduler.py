@@ -1,7 +1,7 @@
 from typing import NamedTuple, Tuple
 
 from app.inference.config import BatchConfig, BATCH_THRESHOLDS, RATIO_THRESHOLDS
-from app.inference.config import FREE_QUEUE, VIP_QUEUE
+from app.inference.config import Queue
 from app.shared.metrics import  CURRENT_BATCH_SIZE, CURRENT_BATCH_TIMEOUT
 from app.inference.queue_service import get_queue_depth
 
@@ -28,7 +28,7 @@ def get_free_batch_ratio(vip_depth: int) -> float :
     return 1.0
 
 def get_vip_batch_config() -> Tuple[BatchConfig, float] :
-    vip_depth: int|None = get_queue_depth(VIP_QUEUE)
+    vip_depth: int|None = get_queue_depth(Queue.VIP_QUEUE)
 
     if vip_depth is not None:
         vip_config = get_batch_config(vip_depth)
@@ -40,7 +40,7 @@ def get_vip_batch_config() -> Tuple[BatchConfig, float] :
         return BatchConfig(0, 0), 1
 
 def get_free_batch_config(free_batch_ratio: float) -> BatchConfig :
-    free_depth: int|None = get_queue_depth(FREE_QUEUE)
+    free_depth: int|None = get_queue_depth(Queue.FREE_QUEUE)
 
     if free_depth is not None:
         free_config = get_batch_config(free_depth)
