@@ -1,11 +1,11 @@
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
-  name: shared-worker-scaledobject
+  name: vip-worker-scaledobject
 
 spec:
   scaleTargetRef:
-    name: shared-worker
+    name: vip-worker
 
   minReplicaCount: 2
   maxReplicaCount: 3
@@ -14,8 +14,8 @@ spec:
     - type: redis
       metadata:
         address: redis.default.svc.cluster.local:6379
-        listName: free_jobs
-        listLength: "300"
+        listName: vip_jobs
+        listLength: "150"
 
     - type: prometheus
       metadata:
@@ -24,9 +24,9 @@ spec:
         query: |
           histogram_quantile(
             0.95, 
-            sum by(le) (rate(worker_processing_latency_seconds_bucket{worker_role="shared"}[5m]))
+            sum by(le) (rate(worker_processing_latency_seconds_bucket{worker_role="vip"}[5m]))
           )
-        threshold: "0.8"
+        threshold: "0.6"
 
     - type: cpu
       metricType: Utilization

@@ -17,9 +17,6 @@ logger = logging.getLogger(__name__)
 class QueueFullError(Exception):
     """Raised when a queue has reached its configured admission limit."""
 
-class QueueUnavailableError(Exception):
-    """Raised when queue availability cannot be checked because Redis is unavailable."""
-
 class RedisUnavailableError(Exception):
     """Raised when Redis cannot be reached or a Redis operation fails."""
 

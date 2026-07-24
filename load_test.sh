@@ -9,7 +9,7 @@
  # ./load_test.sh
 
 # 1. Total requests per wave/burst
-BATCH_SIZE=100
+BATCH_SIZE=500
 
 # API endpoint
 URL="http://localhost:80/predict_async"
@@ -26,7 +26,7 @@ while [ $(date +%s) -lt $END_TIME ]
 do
   echo "--> Firing a wave of $BATCH_SIZE requests..."
 
-  # 4. Launch 200 requests in parallel using backgrounding (&)
+  # 4. Launch x requests in parallel using backgrounding (&)
   for i in $(seq 1 $BATCH_SIZE)
   do
     AMOUNT=$((RANDOM % 1000 + 1))

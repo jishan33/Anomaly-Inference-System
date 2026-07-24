@@ -5,7 +5,7 @@ metadata:
   name: vip-worker
 
 spec:
-  replicas: 3
+  replicas: 2
 
   selector:
     matchLabels:
@@ -35,3 +35,12 @@ spec:
           envFrom:
             - configMapRef:
                 name: anomaly-inference-config
+
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
