@@ -5,10 +5,10 @@ version_policy {
   all {}
 }
 
-max_batch_size: 8    # Enables Triton's Dynamic Batching
+max_batch_size: 128    # Enables Triton's Dynamic Batching
 
 dynamic_batching {
-    preferred_batch_size: [4, 8]
+    preferred_batch_size: [4, 8, 16, 32, 64, 128]
     max_queue_delay_microseconds: 5000
 }
 

@@ -16,16 +16,20 @@ class BatchConfig(NamedTuple):
 # 2. decouple the thresholds from the logic.
 # Ordered from the highest threshold to lowest for easy fallback logic.
 BATCH_THRESHOLDS: List[Tuple[int, BatchConfig]] = [
-    (50, BatchConfig(16, 0.05)),
-    (10, BatchConfig(8, 0.02)),
-    (0, BatchConfig(2, 0.005))
+    (200, BatchConfig(64, 0.10)),
+    (90, BatchConfig(32, 0.07)),
+    (25, BatchConfig(16, 0.05)),
+    (5, BatchConfig(8, 0.025)),
+    (0, BatchConfig(2, 0.015))
 ]
 
 # Decreasing ration adjustments during VIP queue surges
 RATIO_THRESHOLDS: List[Tuple[int, float]] = [
-    (130, 0.0),
-    (100, 0.3),
-    (80, 0.5),
+    (170, 0.0),
+    (150, 0.2),
+    (130, 0.4),
+    (100, 0.6),
+    (80, 0.8),
     (0, 1.0)
 ]
 
@@ -36,8 +40,8 @@ class Queue(StrEnum):
     FREE_QUEUE = "free_jobs"
     VIP_QUEUE = "vip_jobs"
 
-FREE_QUEUE_MAX_LOAD = 1000
-VIP_QUEUE_MAX_LOAD = 500
+FREE_QUEUE_MAX_LOAD = 3000
+VIP_QUEUE_MAX_LOAD = 3000
 
 JOB_TTL_SECONDS = 30
 MAX_JOB_RETRIES = 3
