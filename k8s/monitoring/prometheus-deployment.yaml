@@ -18,6 +18,7 @@ spec:
         app: prometheus
 
     spec:
+      serviceAccountName: prometheus
       volumes:
         - name: prometheus-config
           configMap:
