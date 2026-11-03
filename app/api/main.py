@@ -10,6 +10,7 @@ from fastapi.exceptions import HTTPException as FastAPIHTTPException
 from fastapi.middleware import Middleware
 from fastapi.responses import JSONResponse
 from prometheus_client import generate_latest
+from starlette.responses import RedirectResponse
 
 from app.api.customer import generate_random_customer
 from app.api.request_logging_middleware import RequestLoggingMiddleware
@@ -27,6 +28,11 @@ app = FastAPI(
 )
 HOSTNAME = socket.gethostname()
 app.include_router(router)
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse(url="/docs")
 
 @app.get("/generate_customer")
 def generate_customer():
