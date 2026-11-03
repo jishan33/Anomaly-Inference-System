@@ -5,6 +5,6 @@ pydantic
 redis
 prometheus_client
 scikit-learn==1.8.0
-tritonclient[http]
+tritonclient[grpc]
 numpy==1.26.4
 pyyaml

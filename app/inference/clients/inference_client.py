@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 import time
-import tritonclient.http as httpclient
+import tritonclient.grpc as grpcclient
 
 from app.inference.features import extract_features, Features
 from app.inference.config import PredictionResult
@@ -10,11 +10,11 @@ from app.inference.model_selection import determine_model_name, determine_model_
 from app.shared.metrics import WORKER_TRITON_REQUEST_LATENCY_SECONDS, WORKER_TRITON_SERIALIZATION_SECONDS, \
     WORKER_TRITON_DESERIALIZATION_SECONDS, PREDICTION_RESULT_TOTAL, PREDICTION_SCORE_HISTOGRAM, \
     PREDICTION_AGREEMENT_TOTAL, PREDICTION_DISAGREEMENT_TOTAL, PREDICTION_SCORE_DIFF, WORKER_PROCESSING_FAILURES_TOTAL
-from tritonclient.http import InferResult, InferRequestedOutput, InferInput
+from tritonclient.grpc import InferResult, InferRequestedOutput, InferInput
 
 logger = logging.getLogger(__name__)
 
-TRITON_CLIENT = httpclient.InferenceServerClient(url="triton:8000")
+TRITON_CLIENT = grpcclient.InferenceServerClient(url="triton:8001")
 
 def process_anomaly_detection(transactions:list[dict]) -> list[PredictionResult]:
     results: list[PredictionResult] = []
@@ -97,7 +97,7 @@ def preprocess_input(features: Features, model_version: str, model_name: str) ->
         shape = list(raw_data.shape)
 
         inputs: list[InferInput] = [
-            httpclient.InferInput(
+            grpcclient.InferInput(
                 name="INPUT",
                 shape=shape,
                 datatype="FP32",
@@ -130,8 +130,8 @@ def preprocess_input(features: Features, model_version: str, model_name: str) ->
 
 def run_inference(inputs: list[InferInput], features: Features, model_version: str, model_name: str) -> InferResult:
     outputs: list[InferRequestedOutput] = [
-        httpclient.InferRequestedOutput("OUTPUT"),
-        httpclient.InferRequestedOutput("SCORE")
+        grpcclient.InferRequestedOutput("OUTPUT"),
+        grpcclient.InferRequestedOutput("SCORE")
     ]
 
     network_start = time.perf_counter()
