@@ -8,3 +8,4 @@ scikit-learn==1.8.0
 tritonclient[grpc]
 numpy==1.26.4
 pyyaml
+openai
