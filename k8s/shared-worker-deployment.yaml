@@ -32,6 +32,16 @@ spec:
           env:
             - name: WORKER_ROLE
               value: "shared"
+            - name: VLLM_URL
+              valueFrom:
+                secretKeyRef:
+                  name: anomaly-inference-secret
+                  key: VLLM_URL
+            - name: VLLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: anomaly-inference-secret
+                  key: VLLM_API_KEY
           envFrom:
             - configMapRef:
                 name: anomaly-inference-config
