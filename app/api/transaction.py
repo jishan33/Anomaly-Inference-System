@@ -1,22 +1,29 @@
 import logging
 import random
-import redis
 import time
 
 from app.api.customer import CustomerTokenStr, generate_exact_customer_token
-from app.shared import redis
 from app.shared.metrics import VOLUME_GAUGE
 from app.api.retry import retry_with_backoff
 from app.shared.redis import redis_circuit_breaker, redis_client
 from datetime import timezone
 from faker import Faker
-from pydantic import BaseModel
-from typing import List
-
+from pydantic import BaseModel, Field
+from redis import RedisError
+from typing import List, Annotated
 
 logger = logging.getLogger(__name__)
 KEY = "transactions"
 WINDOW_SECONDS = 60
+
+TransactionTokenStr= Annotated[
+    str,
+    Field(
+        min_length=20,
+        max_length=80,
+        pattern=r"^TXN_[A-Za-z0-9]{16,76}$"
+    )
+]
 
 # Model
 class Transaction(BaseModel):
@@ -24,7 +31,7 @@ class Transaction(BaseModel):
     created_at: str
     type: str
     customer_token: CustomerTokenStr
-    transaction_token: str
+    transaction_token: TransactionTokenStr
 
 # Faker
 fake = Faker()
@@ -35,7 +42,7 @@ def generate_random_transaction():
         created_at=random_date_obj.isoformat(),
         type=random.choice(["PAYMENT", "REFUND", "TRANSFER"]),
         customer_token=generate_exact_customer_token(),
-        transaction_token=f"TXN_{fake.uuid4()[:8].upper()}"
+        transaction_token=f"TXN_{fake.uuid4().replace('-', '')[:26].upper()}"
     )
 
 def append_to_redis(transactions: List[Transaction], request_id: str = "unknown"):
@@ -69,7 +76,7 @@ def append_to_redis(transactions: List[Transaction], request_id: str = "unknown"
             request_id= request_id
         )
         VOLUME_GAUGE.inc()
-    except redis.RedisError as e:
+    except RedisError as e:
         logger.error(
             "redis_error",
             extra={

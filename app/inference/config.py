@@ -1,4 +1,5 @@
 from app.api.customer import CustomerTokenStr
+from app.api.transaction import TransactionTokenStr
 from enum import StrEnum
 from pydantic import BaseModel, Field
 from typing import List, NamedTuple, Tuple
@@ -56,6 +57,8 @@ class Tier(StrEnum):
 
 
 class PredictionResult(NamedTuple):
+    customer_token: CustomerTokenStr
+    transaction_token: TransactionTokenStr
     is_anomaly: bool
     score: float
     tier: Tier
@@ -64,9 +67,6 @@ class PredictionResult(NamedTuple):
 
 class PredictRequest(BaseModel):
     customer_token: CustomerTokenStr
+    transaction_token: TransactionTokenStr
     amount: float = Field(...,gt=0)
     tier: Tier
-
-class ExplanationResponse(BaseModel):
-    index: int
-    content: str

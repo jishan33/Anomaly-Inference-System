@@ -177,6 +177,8 @@ def postprocess_output(raw_response: InferResult, features: Features, model_vers
         score_value = float(score_raw.reshape(-1)[0])
 
         result = PredictionResult(
+            customer_token= features.customer_token,
+            transaction_token= features.transaction_token,
             is_anomaly=bool(is_anomaly_value == 1),
             score=score_value,
             tier=features.tier,
