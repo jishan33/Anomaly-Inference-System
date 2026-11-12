@@ -66,3 +66,7 @@ class PredictRequest(BaseModel):
     customer_token: CustomerTokenStr
     amount: float = Field(...,gt=0)
     tier: Tier
+
+class ExplanationResponse(BaseModel):
+    index: int
+    content: str

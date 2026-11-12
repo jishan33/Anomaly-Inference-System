@@ -3,15 +3,20 @@ import json
 import httpx2
 import os
 
-from openai import AsyncOpenAI
+from httpx2 import Response
+from openai import AsyncOpenAI, APITimeoutError, APIConnectionError
 from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletion
+from pydantic import BaseModel
 from typing import List
+
+class ExplanationsResponse(BaseModel):
+    index: int
+    content: str
 
 URL = os.getenv("VLLM_URL")
 API_KEY = os.getenv("VLLM_API_KEY")
 
 def create_vllm_client() -> AsyncOpenAI:
-
     if not URL or not API_KEY:
         raise RuntimeError("VLLM_URL or VLLM_API_KEY is missing or empty")
 
@@ -23,28 +28,40 @@ def create_vllm_client() -> AsyncOpenAI:
     )
 
 async def main():
-    print(f"{URL}, {API_KEY}")
-    transactions = [
+    transactions= [
         {"amount": 150, "currency": "AUD", "customer_tier": "FREE"},
         {"amount": 500, "currency": "AUD", "customer_tier": "VIP"},
     ]
 
-    async with httpx2.AsyncClient(timeout=3.0) as http:
-        response = await http.get(
-            f"{URL}/health",
-            headers={"Authorization": f"Bearer {API_KEY}"},
-        )
-        response.raise_for_status()
-        print(f"Health HTTP {response.status_code}")
+    try:
+        await health_check()
+        client = create_vllm_client()
+        async with client:
+            models = await client.models.list()
+            print("Available models:", [model.id for model in models.data])
+            await transactions_explainer(client, transactions)
 
-    client = create_vllm_client()
-    async with client:
-        models = await client.models.list()
-        print("Available models:", [model.id for model in models.data])
-        await transactions_explainer(client, transactions)
+    except (TimeoutError, APITimeoutError, APIConnectionError) as exc:
+        raise RuntimeError("The transaction explanation service is unavailable right now.", exc)
+
+async def health_check() -> int:
+    try:
+        async with httpx2.AsyncClient(timeout=3.0) as http:
+            response: Response = await http.get(
+                f"{URL}/health",
+                headers={"Authorization": f"Bearer {API_KEY}"},
+            )
+            response.raise_for_status()
+            print(f"Health HTTP {response.status_code}")
+    except (httpx2.HTTPError, APIConnectionError) as exc:
+        raise RuntimeError(
+            "The transaction explanation service is unavailable right now."
+        ) from exc
+
+    return response.status_code
 
 
-async def transaction_explainer(client: AsyncOpenAI, transaction: dict) -> ChatCompletion:
+async def transaction_explainer(client: AsyncOpenAI, transaction: dict) -> str:
     async with client:
         response: ChatCompletion = await client.chat.completions.create(
             model="transaction-explainer",
@@ -62,12 +79,12 @@ async def transaction_explainer(client: AsyncOpenAI, transaction: dict) -> ChatC
             max_tokens=100,
         )
 
-        explanation = response.choices[0].message.content
+        explanation: str | None = response.choices[0].message.content
         print(f"Explanation: {explanation}")
-        return response
+        return explanation
 
 
-async def transactions_explainer(client: AsyncOpenAI, transactions:List[dict]):
+async def transactions_explainer(client: AsyncOpenAI, transactions:List[dict]) -> List[ExplanationResponse]:
     conversations = [
         [
             {
@@ -92,9 +109,13 @@ async def transactions_explainer(client: AsyncOpenAI, transactions:List[dict]):
             },
         )
 
-        for choice in result["choices"]:
-            print(choice["index"], choice["message"]["content"])
-        return result
+    return [
+        ExplanationsResponse(
+            index=choice["index"],
+            content=choice["message"]["content"],
+        )
+        for choice in result["choices"]
+    ]
 
 
 if __name__ == "__main__":
