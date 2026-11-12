@@ -32,10 +32,18 @@ do
     AMOUNT=$((RANDOM % 1000 + 1))
     (( RANDOM % 100 + 1 <= 30 )) && TIER="VIP" || TIER="FREE"
 
-    curl -s -X POST $URL \
-      -H "Content-Type: application/json" \
-      -d "{\"customer_token\":\"C_xaJCmvXDfq7s6Nff4PSJOZKg7yzSC6XU1AWe0mk\",\"amount\":$AMOUNT,\"tier\":\"$TIER\"}" &
-  done
+    TRANSACTION_TOKEN="TXN_$(uuidgen | tr -d '-')"
+    CUSTOMER_TOKEN="C_$(uuidgen | tr -d '-' | cut -c 1-28)"
+
+    curl -s -X POST "$URL" \
+        -H "Content-Type: application/json" \
+        -d "{
+          \"customer_token\": \"$CUSTOMER_TOKEN\",
+          \"transaction_token\": \"$TRANSACTION_TOKEN\",
+          \"amount\": $AMOUNT,
+          \"tier\": \"$TIER\"
+        }" &
+    done
 
   # 5. Wait 2 seconds before launching the next wave
   sleep 2

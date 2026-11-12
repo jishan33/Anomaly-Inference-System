@@ -57,6 +57,7 @@ async def get_result(job_id:str):
 
     data =  json.loads(result)
     return {
+        "job_id": job_id,
         "is_anomaly": data[0],
         "score": data[1],
         "tier": data[2],
