@@ -2,8 +2,11 @@ from datetime import datetime, timezone
 import json
 import logging
 
+from typing import List
 from fastapi import APIRouter, HTTPException
+from app.api.transaction import Transaction
 from app.inference.clients import inference_client
+from app.inference.clients.vllm_client import create_vllm_client, transaction_explainer
 from app.shared.redis import redis_client
 from app.inference.config import PredictRequest
 from app.inference.queue_service import enqueue_job, QueueJob, QueueFullError, RedisUnavailableError
@@ -11,6 +14,20 @@ from app.shared.redis import redis_circuit_breaker
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+@router.post(path="/risk_summaries/batch")
+async def risk_summaries_batch(txns: List[Transaction]):
+    try:
+        client = create_vllm_client()
+        responses = await transaction_explainer(client, txns)
+    except Exception as exc:
+        logger.exception("Failed to generate batch risk summaries")
+        raise HTTPException(
+            status_code=503,
+            detail="Failed to generate risk summaries."
+        ) from exc
+
+    return {"responses": responses }
 
 @router.post(path="/predict_async")
 async def predict_async(req: PredictRequest):

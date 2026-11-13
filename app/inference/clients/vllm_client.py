@@ -1,11 +1,10 @@
 import asyncio
-import json
 import httpx2
 import os
 
+from app.api.transaction import Transaction, generate_risk_evaluated_transaction
 from httpx2 import Response
 from openai import AsyncOpenAI, APITimeoutError, APIConnectionError
-from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletion
 from pydantic import BaseModel
 from typing import List
 
@@ -28,10 +27,7 @@ def create_vllm_client() -> AsyncOpenAI:
     )
 
 async def main():
-    transactions= [
-        {"amount": 150, "currency": "AUD", "customer_tier": "FREE"},
-        {"amount": 500, "currency": "AUD", "customer_tier": "VIP"},
-    ]
+    txn = generate_risk_evaluated_transaction()
 
     try:
         await health_check()
@@ -39,7 +35,7 @@ async def main():
         async with client:
             models = await client.models.list()
             print("Available models:", [model.id for model in models.data])
-            responses = await transactions_explainer(client, transactions)
+            responses = await transaction_explainer(client, [txn])
             print(f"Responses: {responses}")
 
     except (TimeoutError, APITimeoutError, APIConnectionError) as exc:
@@ -62,37 +58,14 @@ async def health_check() -> int:
     return response.status_code
 
 
-async def transaction_explainer(client: AsyncOpenAI, transaction: dict) -> str:
-    async with client:
-        response: ChatCompletion = await client.chat.completions.create(
-            model="transaction-explainer",
-            messages= [ChatCompletionSystemMessageParam(
-                role="system",
-                content=(
-                    "Describe the supplied transaction in two sentences. "
-                    "Do not invent details. Amount and customer tier alone "
-                    "cannot establish whether it is anomalous."
-                ),
-                name=f"role: user, content: {json.dumps(transaction)}",
-            ),
-            ],
-            temperature=0,
-            max_tokens=100,
-        )
-
-        explanation: str | None = response.choices[0].message.content
-        print(f"Explanation: {explanation}")
-        return explanation
-
-
-async def transactions_explainer(client: AsyncOpenAI, transactions:List[dict]) -> List[ExplanationsResponse]:
+async def transaction_explainer(client: AsyncOpenAI, transactions:List[Transaction]) -> List[ExplanationsResponse]:
     conversations = [
         [
             {
                 "role": "system",
                 "content": "Explain this transaction using only the supplied facts.",
             },
-            {"role": "user", "content": json.dumps(transaction)},
+            {"role": "user", "content": transaction.model_dump_json()},
         ]
         for transaction in transactions
     ]
