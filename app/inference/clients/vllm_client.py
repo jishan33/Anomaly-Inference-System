@@ -8,7 +8,7 @@ from openai import AsyncOpenAI, APITimeoutError, APIConnectionError
 from pydantic import BaseModel
 from typing import List
 
-class ExplanationsResponse(BaseModel):
+class ExplanationResponse(BaseModel):
     index: int
     content: str
 
@@ -58,7 +58,7 @@ async def health_check() -> int:
     return response.status_code
 
 
-async def transaction_explainer(client: AsyncOpenAI, transactions:List[Transaction]) -> List[ExplanationsResponse]:
+async def transaction_explainer(client: AsyncOpenAI, transactions:List[Transaction]) -> List[ExplanationResponse]:
     conversations = [
         [
             {
@@ -84,7 +84,7 @@ async def transaction_explainer(client: AsyncOpenAI, transactions:List[Transacti
         )
 
     return [
-        ExplanationsResponse(
+        ExplanationResponse(
             index=choice["index"],
             content=choice["message"]["content"],
         )

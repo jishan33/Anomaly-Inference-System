@@ -27,30 +27,32 @@ def get_free_batch_ratio(vip_depth: int) -> float :
             return ratio
     return 1.0
 
-def get_vip_batch_config() -> Tuple[BatchConfig, float] :
-    vip_depth: int|None = get_queue_depth(Queue.VIP_QUEUE)
+def get_vip_batch_config() -> Tuple[BatchConfig, float]:
+    depth: int|None = get_queue_depth(Queue.ANOMALY_PREDICT_VIP_QUEUE)
 
-    if vip_depth is not None:
-        vip_config = get_batch_config(vip_depth)
-        free_batch_ratio = get_free_batch_ratio(vip_depth)
-        CURRENT_BATCH_SIZE.labels("vip").set(vip_config.max_batch_size)
-        CURRENT_BATCH_TIMEOUT.labels("vip").set(vip_config.max_wait_time)
-        return vip_config, free_batch_ratio
+    if depth is not None:
+        config = get_batch_config(depth)
+        free_batch_ratio = get_free_batch_ratio(depth)
+
+        CURRENT_BATCH_SIZE.labels("vip").set(config.max_batch_size)
+        CURRENT_BATCH_TIMEOUT.labels("vip").set(config.max_wait_time)
+        return config, free_batch_ratio
     else:
         return BatchConfig(0, 0), 1
 
 def get_free_batch_config(free_batch_ratio: float) -> BatchConfig :
-    free_depth: int|None = get_queue_depth(Queue.FREE_QUEUE)
+    depth: int|None = get_queue_depth(Queue.ANOMALY_PREDICT_FREE_QUEUE)
 
-    if free_depth is not None:
-        free_config = get_batch_config(free_depth)
-        free_max_batch_size = round(free_batch_ratio * free_config.max_batch_size)
+    if depth is not None:
+        config = get_batch_config(depth)
+        max_batch_size = round(free_batch_ratio * config.max_batch_size)
 
-        CURRENT_BATCH_SIZE.labels("free").set(free_max_batch_size)
-        CURRENT_BATCH_TIMEOUT.labels("free").set(free_config.max_wait_time)
+        CURRENT_BATCH_SIZE.labels("free").set(max_batch_size)
+        CURRENT_BATCH_TIMEOUT.labels("free").set(config.max_wait_time)
+
         return BatchConfig(
-            max_batch_size=free_max_batch_size,
-            max_wait_time=free_config.max_wait_time
+            max_batch_size=max_batch_size,
+            max_wait_time=config.max_wait_time
         )
     else:
         return BatchConfig(0, 0)
