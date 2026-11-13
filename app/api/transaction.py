@@ -7,6 +7,7 @@ from app.shared.metrics import VOLUME_GAUGE
 from app.api.retry import retry_with_backoff
 from app.shared.redis import redis_circuit_breaker, redis_client
 from datetime import timezone
+from enum import StrEnum
 from faker import Faker
 from pydantic import BaseModel, Field
 from redis import RedisError
@@ -25,17 +26,24 @@ TransactionTokenStr= Annotated[
     )
 ]
 
-# Model
+class RiskLabel(StrEnum):
+    HIGH_SCAM_RISK = "HIGH_SCAM_RISK"
+    POTENTIAL_SCAM = "POTENTIAL_SCAM"
+    LOW_RISK = "LOW_RISK"
+
 class Transaction(BaseModel):
     amount: float
-    created_at: str
-    type: str
     customer_token: CustomerTokenStr
+    created_at: str
     transaction_token: TransactionTokenStr
+    type: str
+    is_new_destination: bool | None = None
+    destination_risk_score: int | None = None
+    destination_risk_signals: List[str] | None = None
+    risk_label: RiskLabel | None = None
 
-# Faker
-fake = Faker()
-def generate_random_transaction():
+def generate_random_transaction() -> Transaction:
+    fake = Faker()
     random_date_obj = fake.date_time_between(start_date='-5m', end_date='now', tzinfo=timezone.utc)
     return Transaction(
         amount=fake.pyfloat(left_digits=6, right_digits=2, positive=True, min_value=0.01),
@@ -156,3 +164,37 @@ def safe_get_customer_transaction_volume(customer_token: CustomerTokenStr, reque
         return get_customer_transaction_volume(customer_token, request_id)
     except Exception:
         return 0
+
+
+DESTINATION_RISK_SCENARIOS = [
+    (0, 1, []),
+    (2, 5, ["Destination has one unresolved scam report."]),
+    (6, 10, ["Destination is linked to multiple prior scam reports."]),
+]
+def generate_risk_evaluated_transaction() -> Transaction:
+    txn = generate_random_transaction()
+    is_new_destination = random.choice((True, False))
+    risk_score = random.randint(0, 10)
+
+    if risk_score < 2:
+        risk_label = RiskLabel.LOW_RISK
+        signals = []
+    elif risk_score <= 5:
+        risk_label = RiskLabel.POTENTIAL_SCAM
+        signals = [random.choice((
+            "The destination has one unresolved scam report.",
+            "The destination matches an account on a synthetic watchlist.",
+        ))]
+    else:
+        risk_label = RiskLabel.HIGH_SCAM_RISK
+        signals = [random.choice((
+            "The destination is linked to multiple prior scam reports.",
+            "The destination matches an account blocked in a prior scam case.",
+        ))]
+
+    txn.is_new_destination = is_new_destination
+    txn.destination_risk_score = risk_score
+    txn.risk_label = risk_label
+    txn.destination_risk_signals = signals
+
+    return txn

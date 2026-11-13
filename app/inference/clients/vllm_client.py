@@ -39,7 +39,8 @@ async def main():
         async with client:
             models = await client.models.list()
             print("Available models:", [model.id for model in models.data])
-            await transactions_explainer(client, transactions)
+            responses = await transactions_explainer(client, transactions)
+            print(f"Responses: {responses}")
 
     except (TimeoutError, APITimeoutError, APIConnectionError) as exc:
         raise RuntimeError("The transaction explanation service is unavailable right now.", exc)
@@ -84,7 +85,7 @@ async def transaction_explainer(client: AsyncOpenAI, transaction: dict) -> str:
         return explanation
 
 
-async def transactions_explainer(client: AsyncOpenAI, transactions:List[dict]) -> List[ExplanationResponse]:
+async def transactions_explainer(client: AsyncOpenAI, transactions:List[dict]) -> List[ExplanationsResponse]:
     conversations = [
         [
             {

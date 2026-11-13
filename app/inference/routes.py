@@ -58,10 +58,12 @@ async def get_result(job_id:str):
     data =  json.loads(result)
     return {
         "job_id": job_id,
-        "is_anomaly": data[0],
-        "score": data[1],
-        "tier": data[2],
-        "model_version": data[3],
+        "customer_token": data[0],
+        "transaction_token": data[1],
+        "is_anomaly": data[2],
+        "score": data[3],
+        "tier": data[4],
+        "model_version": data[5],
     }
 
 
