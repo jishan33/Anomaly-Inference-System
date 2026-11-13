@@ -73,7 +73,7 @@ class TestTransactionsExplainer(unittest.IsolatedAsyncioTestCase):
             ]
         }
 
-        responses = await vllm_client.transactions_explainer(
+        responses = await vllm_client.transaction_explainer(
             self.client, self.transactions
         )
 
@@ -112,7 +112,7 @@ class TestTransactionsExplainer(unittest.IsolatedAsyncioTestCase):
         self.client.post.side_effect = timeout
 
         with self.assertRaises(APITimeoutError) as raised:
-            await vllm_client.transactions_explainer(
+            await vllm_client.transaction_explainer(
                 self.client, self.transactions
             )
 

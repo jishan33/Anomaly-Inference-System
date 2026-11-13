@@ -6,7 +6,7 @@ from typing import List
 from fastapi import APIRouter, HTTPException
 from app.api.transaction import Transaction
 from app.inference.clients import inference_client
-from app.inference.clients.vllm_client import create_vllm_client, transactions_explainer
+from app.inference.clients.vllm_client import create_vllm_client, transaction_explainer
 from app.shared.redis import redis_client
 from app.inference.config import PredictRequest
 from app.inference.queue_service import enqueue_job, QueueJob, QueueFullError, RedisUnavailableError
@@ -19,7 +19,7 @@ router = APIRouter()
 async def risk_summaries_batch(txns: List[Transaction]):
     try:
         client = create_vllm_client()
-        responses = await transactions_explainer(client, txns)
+        responses = await transaction_explainer(client, txns)
     except Exception as exc:
         logger.exception("Failed to generate batch risk summaries")
         raise HTTPException(

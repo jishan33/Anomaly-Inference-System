@@ -35,7 +35,7 @@ async def main():
         async with client:
             models = await client.models.list()
             print("Available models:", [model.id for model in models.data])
-            responses = await transactions_explainer(client, [txn])
+            responses = await transaction_explainer(client, [txn])
             print(f"Responses: {responses}")
 
     except (TimeoutError, APITimeoutError, APIConnectionError) as exc:
@@ -58,7 +58,7 @@ async def health_check() -> int:
     return response.status_code
 
 
-async def transactions_explainer(client: AsyncOpenAI, transactions:List[Transaction]) -> List[ExplanationsResponse]:
+async def transaction_explainer(client: AsyncOpenAI, transactions:List[Transaction]) -> List[ExplanationsResponse]:
     conversations = [
         [
             {
