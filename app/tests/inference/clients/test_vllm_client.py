@@ -1,6 +1,8 @@
 import json
 import httpx2
 import unittest
+
+from app.api.transaction import generate_risk_evaluated_transaction
 from app.inference.clients import vllm_client
 from openai import APITimeoutError
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -54,60 +56,13 @@ class TestHealthCheck(unittest.IsolatedAsyncioTestCase):
         self.assertIs(raised.exception.__cause__, timeout)
 
 
-class TestTransactionExplainer(unittest.IsolatedAsyncioTestCase):
-    def setUp(self):
-        self.transaction = {
-            "amount": 150,
-            "currency": "AUD",
-            "customer_tier": "FREE",
-        }
-        self.client = MagicMock()
-        self.create_completion = AsyncMock()
-        self.client.chat.completions.create = self.create_completion
-
-    async def test_sends_transaction_and_returns_completion(self):
-        explanation = "A FREE-tier customer made a transaction of 150 AUD."
-        self.create_completion.return_value = SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content=explanation))]
-        )
-
-        result = await vllm_client.transaction_explainer(
-            self.client, self.transaction
-        )
-
-        self.assertEqual(result, explanation)
-        self.create_completion.assert_awaited_once()
-
-        request = self.create_completion.await_args.kwargs
-        self.assertEqual(request["model"], MODEL)
-
-        system_message = request["messages"][0]
-        self.assertEqual(system_message["role"], "system")
-
-        prefix = "role: user, content: "
-        name = system_message["name"]
-        self.assertTrue(name.startswith(prefix))
-        self.assertEqual(json.loads(name.removeprefix(prefix)), self.transaction)
-
-    async def test_propagates_timeout_to_caller(self):
-        timeout = APITimeoutError(
-            request=httpx2.Request("POST", f"{VLLM_URL}/v1/chat/completions")
-        )
-        self.create_completion.side_effect = timeout
-
-        with self.assertRaises(APITimeoutError) as raised:
-            await vllm_client.transaction_explainer(self.client, self.transaction)
-
-        self.assertIs(raised.exception, timeout)
-
-
 class TestTransactionsExplainer(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.client = MagicMock()
         self.client.post = AsyncMock()
         self.transactions = [
-            {"amount": 150, "currency": "AUD", "customer_tier": "FREE"},
-            {"amount": 500, "currency": "AUD", "customer_tier": "VIP"},
+            generate_risk_evaluated_transaction(),
+            generate_risk_evaluated_transaction(),
         ]
 
     async def test_sends_one_conversation_per_transaction(self):
@@ -141,7 +96,7 @@ class TestTransactionsExplainer(unittest.IsolatedAsyncioTestCase):
                 system_message, user_message = conversation
                 self.assertEqual(system_message["role"], "system")
                 self.assertEqual(user_message["role"], "user")
-                self.assertEqual(json.loads(user_message["content"]), transaction)
+                self.assertEqual(json.loads(user_message["content"]), transaction.model_dump(mode="json"))
 
         self.assertEqual(
             [(response.index, response.content) for response in responses],
