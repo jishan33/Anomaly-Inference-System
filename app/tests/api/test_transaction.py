@@ -180,3 +180,40 @@ class TestSafeVolumeWrappers(unittest.TestCase):
             self.assertEqual(
                 txn_module.safe_get_customer_transaction_volume(CUSTOMER_TOKEN), 0
             )
+
+class TestGenerateRiskEvaluatedTransaction(unittest.TestCase):
+    def test_assigns_risk_labels_at_score_boundaries(self):
+        cases = [
+            (0, txn_module.RiskLabel.LOW_RISK),
+            (1, txn_module.RiskLabel.LOW_RISK),
+            (2, txn_module.RiskLabel.POTENTIAL_SCAM),
+            (5, txn_module.RiskLabel.POTENTIAL_SCAM),
+            (6, txn_module.RiskLabel.HIGH_SCAM_RISK),
+            (10, txn_module.RiskLabel.HIGH_SCAM_RISK),
+        ]
+
+        for score, expected_label in cases:
+            with self.subTest(score=score):
+                with patch.object(txn_module.random, "randint", return_value=score):
+                    txn = txn_module.generate_risk_evaluated_transaction()
+
+                self.assertEqual(txn.destination_risk_score, score)
+                self.assertEqual(txn.risk_label, expected_label)
+
+                # For the version that adds destination_risk_signals.
+                if expected_label == txn_module.RiskLabel.LOW_RISK:
+                    self.assertEqual(txn.destination_risk_signals, [])
+                else:
+                    self.assertEqual(len(txn.destination_risk_signals), 1)
+                    self.assertTrue(txn.destination_risk_signals[0].strip())
+
+    def test_assigns_both_new_destination_values(self):
+        for is_new in (True, False):
+            with self.subTest(is_new=is_new):
+                with (
+                    patch.object(txn_module.random, "randint", return_value=0),
+                    patch.object(txn_module.random, "choice", side_effect=["PAYMENT", is_new]),
+                ):
+                    txn = txn_module.generate_risk_evaluated_transaction()
+
+                self.assertIs(txn.is_new_destination, is_new)

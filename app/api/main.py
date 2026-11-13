@@ -5,7 +5,7 @@ import traceback
 from datetime import datetime, timezone
 from typing import List
 from fastapi import FastAPI
-from fastapi import HTTPException, Request, Response
+from fastapi import Request, Response
 from fastapi.exceptions import HTTPException as FastAPIHTTPException
 from fastapi.middleware import Middleware
 from fastapi.responses import JSONResponse
@@ -14,7 +14,8 @@ from starlette.responses import RedirectResponse
 
 from app.api.customer import generate_random_customer
 from app.api.request_logging_middleware import RequestLoggingMiddleware
-from app.api.transaction import Transaction, safe_get_volume, redis_circuit_breaker, generate_random_transaction
+from app.api.transaction import Transaction, safe_get_volume, redis_circuit_breaker, generate_random_transaction, \
+    generate_risk_evaluated_transaction
 from app.inference.routes import router
 from app.shared.redis import redis_client
 from app.shared.config import setup_logging
@@ -52,7 +53,7 @@ def generate_transaction():
 
 @app.get("/generate_transactions")
 def generate_transactions():
-    count = random.randint(1, 1000)
+    count = random.randint(1, 100)
 
     transactions: List[Transaction] = [
         generate_random_transaction()
@@ -60,6 +61,15 @@ def generate_transactions():
     ]
     return transactions
 
+@app.get("/generate_risk_evaluated_transactions")
+def generate_risk_evaluated_transactions():
+    count = random.randint(1, 100)
+
+    transactions: List[Transaction] = [
+        generate_risk_evaluated_transaction()
+        for _ in range(count)
+    ]
+    return transactions
 
 # Health
 @app.get("/healthz")
