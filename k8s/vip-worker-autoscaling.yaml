@@ -14,7 +14,7 @@ spec:
     - type: redis
       metadata:
         address: redis.default.svc.cluster.local:6379
-        listName: vip_jobs
+        listName: anomaly_predict_vip_jobs
         listLength: "150"
 
     - type: prometheus

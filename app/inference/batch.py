@@ -231,7 +231,7 @@ def process_batch(
         worker_role=worker_role,
     )
 
-    transactions = [job.transaction for job in batch]
+    transactions: list[dict] = [job.predict_request for job in batch]
 
     start_inference = time.time()
 
