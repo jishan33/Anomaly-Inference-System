@@ -3,8 +3,9 @@ import numpy as np
 import time
 import tritonclient.grpc as grpcclient
 
-from app.inference.features import extract_features, Features
-from app.inference.config import PredictionResult
+from app.api.transaction import Transaction
+from app.inference.prediction_models import to_prediction_request, PredictionRequest, PredictionResult
+from app.inference.queue_config import Tier
 from app.inference.model_selection import determine_model_name, determine_model_versions_based_on_rollout_mode, \
     SelectedModelVersions
 from app.shared.metrics import WORKER_TRITON_REQUEST_LATENCY_SECONDS, WORKER_TRITON_SERIALIZATION_SECONDS, \
@@ -16,18 +17,16 @@ logger = logging.getLogger(__name__)
 
 TRITON_CLIENT = grpcclient.InferenceServerClient(url="triton:8001")
 
-def process_anomaly_detection(transactions:list[dict]) -> list[PredictionResult]:
+def process_anomaly_detection(transactions:list[Transaction], tier: Tier) -> list[PredictionResult]:
     results: list[PredictionResult] = []
 
     for transaction in transactions:
         try:
-            features: Features = extract_features(transaction)
-            result: PredictionResult = process_transaction(features)
+            request: PredictionRequest = to_prediction_request(transaction, tier)
+            result: PredictionResult = process_transaction(request)
             results.append(result)
 
         except Exception as e:
-            tier = transaction.get("tier", "unknown")
-
             record_worker_failure(
                 stage="transaction_processing",
                 error=e,
@@ -43,7 +42,7 @@ def process_anomaly_detection(transactions:list[dict]) -> list[PredictionResult]
 
     return results
 
-def process_transaction(features: Features) -> PredictionResult:
+def process_transaction(features: PredictionRequest) -> PredictionResult:
     try:
         model_name: str = determine_model_name()
         versions: SelectedModelVersions = determine_model_versions_based_on_rollout_mode(model_name)
@@ -84,12 +83,12 @@ def process_transaction(features: Features) -> PredictionResult:
 
     return stable
 
-def infer_single_version(features: Features, model_version: str, model_name: str) -> PredictionResult:
+def infer_single_version(features: PredictionRequest, model_version: str, model_name: str) -> PredictionResult:
     triton_inputs: list[InferInput] = preprocess_input(features, model_version, model_name)
     raw_response: InferResult = run_inference(triton_inputs, features, model_version, model_name)
     return postprocess_output(raw_response, features, model_version, model_name)
 
-def preprocess_input(features: Features, model_version: str, model_name: str) -> list[InferInput]:
+def preprocess_input(features: PredictionRequest, model_version: str, model_name: str) -> list[InferInput]:
     serialize_start = time.perf_counter()
 
     try:
@@ -128,7 +127,7 @@ def preprocess_input(features: Features, model_version: str, model_name: str) ->
             model_version=model_version,
         ).observe(serialize_end - serialize_start)
 
-def run_inference(inputs: list[InferInput], features: Features, model_version: str, model_name: str) -> InferResult:
+def run_inference(inputs: list[InferInput], features: PredictionRequest, model_version: str, model_name: str) -> InferResult:
     outputs: list[InferRequestedOutput] = [
         grpcclient.InferRequestedOutput("OUTPUT"),
         grpcclient.InferRequestedOutput("SCORE")
@@ -166,7 +165,7 @@ def run_inference(inputs: list[InferInput], features: Features, model_version: s
             model_version=model_version,
         ).observe(network_end - network_start)
 
-def postprocess_output(raw_response: InferResult, features: Features, model_version: str, model_name: str) -> PredictionResult:
+def postprocess_output(raw_response: InferResult, features: PredictionRequest, model_version: str, model_name: str) -> PredictionResult:
     deserialize_start = time.perf_counter()
 
     try:

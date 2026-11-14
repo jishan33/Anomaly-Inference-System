@@ -1,12 +1,14 @@
 
 import json
 import logging
+import random
 import time
 import uuid
 from typing import TypedDict
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 
-from app.inference.config import Queue, RawJob, DEAD_LETTER_QUEUE, Tier, VIP_QUEUE_MAX_LOAD, \
+from app.api.transaction import Transaction
+from app.inference.queue_config import Queue, RawJob, DEAD_LETTER_QUEUE, Tier, VIP_QUEUE_MAX_LOAD, \
     FREE_QUEUE_MAX_LOAD
 from app.shared.metrics import QUEUE_INGRESS_TOTAL, DEAD_LETTER_QUEUE_JOBS_TOTAL, DEAD_LETTER_QUEUE_PUSH_ATTEMPTS_TOTAL, \
     DLQ_PUSH_FAILURE_TOTAL, REDIS_OPERATION_FAILURES_TOTAL, LOAD_SHED_REQUESTS_TOTAL
@@ -22,7 +24,7 @@ class RedisUnavailableError(Exception):
 
 class QueueJob(BaseModel):
     job_id: str
-    predict_request: dict
+    request: Transaction
     created_at: float
     tier: Tier
     retry_count: int = 0
@@ -69,15 +71,15 @@ def _verify_queue_availability(queue_name: str, tier: Tier):
         LOAD_SHED_REQUESTS_TOTAL.labels(tier=tier, reason=f"{queue_name}_depth_exceeded").inc()
         raise QueueFullError(f"{queue_name} max load reached. depth={queue_depth}, limit={queue_limit}")
 
-def enqueue_anomaly_predict_job(predict_request: dict) -> QueueJob:
-    tier : Tier = predict_request.get("tier", Tier.Free)
+def enqueue_job(request: Transaction) -> QueueJob:
+    tier : Tier = random.choice((Tier.VIP, Tier.Free))
     queue_name = _get_queue_name(tier)
 
     _verify_queue_availability(queue_name, tier)
 
     job = QueueJob(
         job_id = str(uuid.uuid4()),
-        predict_request= predict_request,
+        request= request,
         created_at= time.time(),
         tier= tier,
         retry_count= 0

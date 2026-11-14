@@ -4,8 +4,10 @@ import time
 from dataclasses import dataclass
 from typing import Optional
 
+from app.api.transaction import Transaction
 from app.shared.redis import redis_client
-from app.inference.config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob, PredictionResult, Tier
+from app.inference.queue_config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob, Tier
+from app.inference.prediction_models import PredictionResult
 from app.inference.clients.inference_client import process_anomaly_detection
 from app.shared.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS, \
     REDIS_OPERATION_FAILURES_TOTAL, WORKER_BATCH_SIZE, WORKER_BATCH_FLUSH_TOTAL
@@ -210,7 +212,7 @@ def process_batch(
     - True if a batch was processed successfully
     - False if no work was processed or processing failed
     """
-    fetch_result = fetch_batch( queue_name=queue_name, max_batch_size=max_batch_size, max_wait_time=max_wait_time )
+    fetch_result = fetch_batch(queue_name=queue_name, max_batch_size=max_batch_size, max_wait_time=max_wait_time )
 
     batch = fetch_result.batch
     if not batch:
@@ -231,12 +233,12 @@ def process_batch(
         worker_role=worker_role,
     )
 
-    transactions: list[dict] = [job.predict_request for job in batch]
+    transactions: list[Transaction] = [job.request for job in batch]
 
     start_inference = time.time()
 
     try:
-        results: list[PredictionResult] = process_anomaly_detection(transactions)
+        results: list[PredictionResult] = process_anomaly_detection(transactions, tier)
 
         latency = time.time() - start_inference
 
