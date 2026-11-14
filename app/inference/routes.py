@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from app.api.transaction import Transaction
 from app.inference.clients import inference_client
 from app.inference.clients.vllm_client import create_vllm_client, transaction_explainer
+from app.inference.queue_config import QueueType
 from app.shared.redis import redis_client
 from app.inference.queue_service import enqueue_job, QueueJob, QueueFullError, RedisUnavailableError
 from app.shared.redis import redis_circuit_breaker
@@ -36,6 +37,7 @@ async def risk_summaries_batch(txns: List[Transaction]):
 async def predict_async(txn: Transaction):
     try:
         job: QueueJob = enqueue_job(
+            queue_type= QueueType.ANOMALY_PREDICT,
             request=txn.model_dump(),
         )
 

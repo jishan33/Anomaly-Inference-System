@@ -50,6 +50,8 @@ OptionalRawJob = RawJob | None
 
 class Tier(StrEnum):
     VIP = "VIP"
-    Free = "FREE"
+    FREE = "FREE"
 
-
+class QueueType(StrEnum):
+    ANOMALY_PREDICT = "ANOMALY_PREDICT"
+    RISK_SUMMARY = "RISK_SUMMARY"

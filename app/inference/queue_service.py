@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from app.api.transaction import Transaction
 from app.inference.queue_config import Queue, RawJob, DEAD_LETTER_QUEUE, Tier, VIP_QUEUE_MAX_LOAD, \
-    FREE_QUEUE_MAX_LOAD
+    FREE_QUEUE_MAX_LOAD, QueueType
 from app.shared.metrics import QUEUE_INGRESS_TOTAL, DEAD_LETTER_QUEUE_JOBS_TOTAL, DEAD_LETTER_QUEUE_PUSH_ATTEMPTS_TOTAL, \
     DLQ_PUSH_FAILURE_TOTAL, REDIS_OPERATION_FAILURES_TOTAL, LOAD_SHED_REQUESTS_TOTAL
 from app.shared.redis import redis_circuit_breaker, redis_client
@@ -34,8 +34,8 @@ class DlqPayload(TypedDict):
     reason: str
     failed_at: float
 
-def _get_queue_name(tier: Tier) -> str:
-    if tier == Tier.VIP:
+def _get_queue_name(queue_type: QueueType, tier: Tier) -> str:
+    if tier == Tier.VIP and queue_type == QueueType.ANOMALY_PREDICT:
         return Queue.ANOMALY_PREDICT_VIP_QUEUE
 
     return Queue.ANOMALY_PREDICT_FREE_QUEUE
@@ -71,9 +71,9 @@ def _verify_queue_availability(queue_name: str, tier: Tier):
         LOAD_SHED_REQUESTS_TOTAL.labels(tier=tier, reason=f"{queue_name}_depth_exceeded").inc()
         raise QueueFullError(f"{queue_name} max load reached. depth={queue_depth}, limit={queue_limit}")
 
-def enqueue_job(request: Transaction) -> QueueJob:
-    tier : Tier = random.choice((Tier.VIP, Tier.Free))
-    queue_name = _get_queue_name(tier)
+def enqueue_job(queue_type: QueueType, request: Transaction) -> QueueJob:
+    tier : Tier = random.choice((Tier.VIP, Tier.FREE))
+    queue_name = _get_queue_name(queue_type, tier)
 
     _verify_queue_availability(queue_name, tier)
 
