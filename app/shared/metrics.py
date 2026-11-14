@@ -114,7 +114,7 @@ PROCESSED_REQUESTS = Counter(
 QUEUE_INGRESS_TOTAL = Counter(
     "queue_ingress_total",
     "Total number of ingress requests added to the queue",
-    ["tier"]
+    ["queue_name"]
 )
 
 ACTIVE_WORKERS = Gauge(

@@ -27,6 +27,7 @@ class QueueJob(BaseModel):
     request: Transaction
     created_at: float
     tier: Tier
+    queue_type: QueueType
     retry_count: int = 0
 
 class DlqPayload(TypedDict):
@@ -35,10 +36,13 @@ class DlqPayload(TypedDict):
     failed_at: float
 
 def _get_queue_name(queue_type: QueueType, tier: Tier) -> str:
-    if tier == Tier.VIP and queue_type == QueueType.ANOMALY_PREDICT:
-        return Queue.ANOMALY_PREDICT_VIP_QUEUE
-
-    return Queue.ANOMALY_PREDICT_FREE_QUEUE
+    _QUEUE_NAMES: dict[tuple[QueueType, Tier], str] = {
+        (QueueType.ANOMALY_PREDICT, Tier.VIP): Queue.ANOMALY_PREDICT_VIP_QUEUE,
+        (QueueType.ANOMALY_PREDICT, Tier.FREE): Queue.ANOMALY_PREDICT_FREE_QUEUE,
+        (QueueType.RISK_SUMMARY, Tier.VIP): Queue.RISK_SUMMARY_VIP_QUEUE,
+        (QueueType.RISK_SUMMARY, Tier.FREE): Queue.RISK_SUMMARY_FREE_QUEUE,
+    }
+    return _QUEUE_NAMES[(queue_type, tier)]
 
 def _get_queue_limit(tier: Tier) -> int:
     if tier == Tier.VIP:
@@ -82,23 +86,24 @@ def enqueue_job(queue_type: QueueType, request: Transaction) -> QueueJob:
         request= request,
         created_at= time.time(),
         tier= tier,
+        queue_type= queue_type,
         retry_count= 0
     )
 
     try:
         redis_circuit_breaker.call(
-            lambda : redis_client.rpush( queue_name,job.json()),
-            operation_name=f"redis_enqueue_{tier}"
+            lambda : redis_client.rpush(queue_name,job.model_dump_json()),
+            operation_name="redis_enqueue"
         )
 
     except Exception as e:
         REDIS_OPERATION_FAILURES_TOTAL.labels(operation=f"redis_enqueue_{tier}").inc()
-        logger.error(f'redis unavailable during enqueue {tier}: {e}')
+        logger.error(f'redis unavailable during enqueue {queue_name} job: {e}')
         raise RedisUnavailableError(
-            f"Failed to enqueue job because Redis is unavailable. tier={tier}"
+            f"Failed to enqueue {queue_name} job because Redis is unavailable."
         ) from e
 
-    QUEUE_INGRESS_TOTAL.labels(tier).inc()
+    QUEUE_INGRESS_TOTAL.labels(queue_name).inc()
 
     return job
 

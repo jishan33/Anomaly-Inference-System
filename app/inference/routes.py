@@ -33,6 +33,36 @@ async def risk_summaries_batch(txns: List[Transaction]):
 
     return {"responses": responses }
 
+@router.post(path="/risk_summary/async")
+async def risk_summary_async(txn: Transaction):
+    try:
+        job =  enqueue_job(
+            queue_type= QueueType.RISK_SUMMARY,
+            request= txn.model_dump()
+        )
+    except QueueFullError as e:
+        raise HTTPException(status_code=429, detail=str(e))
+
+    except RedisUnavailableError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    except Exception:
+        logger.exception("Unexpected enqueue failure")
+        raise HTTPException(status_code=503, detail="Failed to enqueue job")
+
+    created_at = job.created_at
+    created_at_utc = datetime.fromtimestamp(created_at, tz=timezone.utc)
+
+    return  {
+        "job_id": job.job_id,
+        "queue_type": job.queue_type,
+        "status": "queued",
+        "tier": job.tier,
+        "created_at": created_at_utc
+    }
+
+
+
 @router.post(path="/predict_async")
 async def predict_async(txn: Transaction):
     try:
@@ -56,6 +86,7 @@ async def predict_async(txn: Transaction):
 
     return  {
         "job_id": job.job_id,
+        "queue_type": job.queue_type,
         "status": "queued",
         "tier": job.tier,
         "created_at": created_at_utc
