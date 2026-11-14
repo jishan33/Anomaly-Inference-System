@@ -35,7 +35,7 @@ class DlqPayload(TypedDict):
     reason: str
     failed_at: float
 
-def _get_queue_name(queue_type: QueueType, tier: Tier) -> Queue:
+def get_queue_name(queue_type: QueueType, tier: Tier) -> Queue:
     _QUEUE_NAMES: dict[tuple[QueueType, Tier], Queue] = {
         (QueueType.ANOMALY_PREDICT, Tier.VIP): Queue.ANOMALY_PREDICT_VIP_QUEUE,
         (QueueType.ANOMALY_PREDICT, Tier.FREE): Queue.ANOMALY_PREDICT_FREE_QUEUE,
@@ -77,7 +77,7 @@ def _verify_queue_availability(queue_name: Queue, tier: Tier):
 
 def enqueue_job(queue_type: QueueType, request: Transaction) -> QueueJob:
     tier : Tier = random.choice((Tier.VIP, Tier.FREE))
-    queue_name = _get_queue_name(queue_type, tier)
+    queue_name = get_queue_name(queue_type, tier)
 
     _verify_queue_availability(queue_name, tier)
 
@@ -97,7 +97,7 @@ def enqueue_job(queue_type: QueueType, request: Transaction) -> QueueJob:
         )
 
     except Exception as e:
-        REDIS_OPERATION_FAILURES_TOTAL.labels(operation=f"redis_enqueue_{tier}").inc()
+        REDIS_OPERATION_FAILURES_TOTAL.labels(operation=f"redis_enqueue_{queue_name}").inc()
         logger.error(f'redis unavailable during enqueue {queue_name} job: {e}')
         raise RedisUnavailableError(
             f"Failed to enqueue {queue_name} job because Redis is unavailable."

@@ -1,11 +1,10 @@
-from typing import NamedTuple
-
 from app.api.customer import CustomerTokenStr
 from app.api.transaction import TransactionTokenStr, Transaction
 from app.inference.queue_config import Tier
+from openai import BaseModel
 
 
-class PredictionRequest(NamedTuple):
+class PredictionRequest(BaseModel):
     customer_token: CustomerTokenStr
     transaction_token: TransactionTokenStr
     amount: float
@@ -21,7 +20,7 @@ def to_prediction_request(transaction:Transaction, tier:Tier) -> PredictionReque
     )
 
 
-class PredictionResult(NamedTuple):
+class PredictionResult(BaseModel):
     customer_token: CustomerTokenStr
     transaction_token: TransactionTokenStr
     is_anomaly: bool

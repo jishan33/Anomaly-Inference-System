@@ -83,13 +83,13 @@ QUEUE_WAIT_TIME = Histogram(
 CURRENT_BATCH_SIZE = Gauge(
     "current_batch_size",
     "Current adaptive batch size",
-    ["tier"]
+    ["tier", "queue_name"]
 )
 
 CURRENT_BATCH_TIMEOUT = Gauge(
     "current_batch_timeout_seconds",
     "Current adaptive batch timeout",
-    ["tier"]
+    ["tier", "queue_name"]
 )
 
 WORKER_BATCH_SIZE = Histogram(

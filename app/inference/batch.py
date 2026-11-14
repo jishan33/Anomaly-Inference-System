@@ -22,21 +22,6 @@ class FetchBatchResult:
     batch: list[QueueJob]
     flush_reason: str = "unknown"
 
-def _job_to_json(job: QueueJob) -> str:
-    if hasattr(job, "model_dump_json"):
-        return job.model_dump_json()
-
-    return job.json()
-
-def _result_to_json(result: PredictionResult) -> str:
-    if hasattr(result, "model_dump_json"):
-        return result.model_dump_json()
-
-    if hasattr(result, "json"):
-        return result.json()
-
-    return json.dumps(result)
-
 def _record_batch_metrics(batch: list[QueueJob], tier: Tier, worker_role: str, queue_name: str,flush_reason: str,) -> None:
     if not batch:
         return
@@ -57,7 +42,7 @@ def _record_batch_metrics(batch: list[QueueJob], tier: Tier, worker_role: str, q
 
 def _parse_raw_job(raw_job: OptionalRawJob, queue_name: str) -> Optional[QueueJob]:
     try:
-        return QueueJob.parse_raw(raw_job)
+        return QueueJob.model_validate_json(raw_job)
     except (json.JSONDecodeError, TypeError, ValueError) as e:
         move_to_dlq(raw_job, "invalid_job_payload")
         logger.warning("Failed to parse job from %s: %s", queue_name, e)
@@ -153,11 +138,11 @@ def _requeue_or_dlq_failed_batch(batch: list[QueueJob], queue_name: str, reason:
         job.retry_count += 1
 
         if job.retry_count >= MAX_JOB_RETRIES:
-            move_to_dlq(_job_to_json(job), reason)
+            move_to_dlq(job.model_dump_json(), reason)
 
         try:
             redis_circuit_breaker.call(
-                lambda: redis_client.rpush(queue_name, _job_to_json(job)),
+                lambda: redis_client.rpush(queue_name, job.model_dump_json()),
                 operation_name="redis_requeue",
             )
 
@@ -172,15 +157,15 @@ def _requeue_or_dlq_failed_batch(batch: list[QueueJob], queue_name: str, reason:
                 requeue_error,
             )
 
-def _save_result(job: QueueJob, result: PredictionResult) -> bool:
+def _save_result(job: QueueJob, result: PredictionResult | ExplanationResponse) -> bool:
     try:
         redis_circuit_breaker.call(
-            lambda: redis_client.set( f"job_result:{job.job_id}",_result_to_json(result)),
+            lambda: redis_client.set( f"job_result:{job.job_id}", result.model_dump_json()),
             operation_name="redis_set_result",
         )
 
         PROCESSED_REQUESTS.labels(
-            tier=result.tier,
+            tier=job.tier,
             queue_type = job.queue_type,
         ).inc()
 
@@ -286,13 +271,12 @@ async def process_batch(
     return all_saved
 
 
-
-
 async def determine_workload_processor(queue_name: Queue, transactions: list[Transaction], tier:Tier) -> list[PredictionResult] | list[ExplanationResponse]:
-    if queue_name == Queue.ANOMALY_PREDICT_VIP_QUEUE or Queue.ANOMALY_PREDICT_FREE_QUEUE:
+    if queue_name in (Queue.ANOMALY_PREDICT_VIP_QUEUE, Queue.ANOMALY_PREDICT_FREE_QUEUE):
         return process_anomaly_detection(transactions, tier)
-    elif queue_name == Queue.RISK_SUMMARY_VIP_QUEUE or Queue.RISK_SUMMARY_FREE_QUEUE:
+
+    if queue_name in (Queue.RISK_SUMMARY_VIP_QUEUE, Queue.RISK_SUMMARY_FREE_QUEUE):
         clent = create_vllm_client()
         return await transaction_explainer(clent, transactions)
-    else:
-        raise RuntimeError(f"Cannot determine workload processor for unknow queue name: {queue_name}")
+
+    raise RuntimeError(f"No workload processor for queue {queue_name!r}")

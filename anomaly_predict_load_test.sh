@@ -1,12 +1,4 @@
 #!/bin/bash
-#“Use bash to execute this script”
- # chmod
- # “change mode” (change file permissions)
- # +x
- # “add execute permission”
-
- # chmod +x load_test.sh
- # ./load_test.sh
 
 # 1. Total requests per wave/burst
 BATCH_SIZE=500
@@ -29,7 +21,7 @@ do
   # 4. Launch x requests in parallel using backgrounding (&)
   for i in $(seq 1 $BATCH_SIZE)
   do
-    AMOUNT=$((RANDOM % 1000 + 1))
+    AMOUNT=$((RANDOM % 100 + 1))
     CREATED_AT=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
 
     case $((RANDOM % 3)) in

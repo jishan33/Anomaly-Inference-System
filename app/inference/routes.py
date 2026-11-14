@@ -61,8 +61,6 @@ async def risk_summary_async(txn: Transaction):
         "created_at": created_at_utc
     }
 
-
-
 @router.post(path="/predict_async")
 async def predict_async(txn: Transaction):
     try:
@@ -92,7 +90,7 @@ async def predict_async(txn: Transaction):
         "created_at": created_at_utc
     }
 
-@router.get("/result/{job_id}")
+@router.get("/anomaly_predict_result/{job_id}")
 async def get_result(job_id:str):
     try:
         result = redis_circuit_breaker.call(
@@ -109,15 +107,27 @@ async def get_result(job_id:str):
         return {"status": "processing"}
 
     data =  json.loads(result)
-    return {
-        "job_id": job_id,
-        "customer_token": data[0],
-        "transaction_token": data[1],
-        "is_anomaly": data[2],
-        "score": data[3],
-        "tier": data[4],
-        "model_version": data[5],
-    }
+    return data
+
+
+@router.get("/risk_summary_result/{job_id}")
+async def get_result(job_id:str):
+    try:
+        result = redis_circuit_breaker.call(
+            lambda: redis_client.get(f"job_result:{job_id}"),
+            operation_name="redis_get_result",
+        )
+    except Exception:
+        raise HTTPException(
+            status_code=503,
+            detail="Result store is temporarily unavailable"
+        )
+
+    if not result:
+        return {"status": "processing"}
+
+    data =  json.loads(result)
+    return data
 
 
 @router.get("/model_metadata")
