@@ -30,7 +30,13 @@ do
   for i in $(seq 1 $BATCH_SIZE)
   do
     AMOUNT=$((RANDOM % 1000 + 1))
-    (( RANDOM % 100 + 1 <= 30 )) && TIER="VIP" || TIER="FREE"
+    CREATED_AT=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+
+    case $((RANDOM % 3)) in
+        0) TYPE="PAYMENT" ;;
+        1) TYPE="REFUND" ;;
+        2) TYPE="TRANSFER" ;;
+      esac
 
     TRANSACTION_TOKEN="TXN_$(uuidgen | tr -d '-')"
     CUSTOMER_TOKEN="C_$(uuidgen | tr -d '-' | cut -c 1-28)"
@@ -41,7 +47,8 @@ do
           \"customer_token\": \"$CUSTOMER_TOKEN\",
           \"transaction_token\": \"$TRANSACTION_TOKEN\",
           \"amount\": $AMOUNT,
-          \"tier\": \"$TIER\"
+          \"created_at\": \"$CREATED_AT\",
+          \"type\": \"$TYPE\"
         }" &
     done
 

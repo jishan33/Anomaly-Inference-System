@@ -3,7 +3,7 @@ import os
 import time
 
 from app.inference.batch import process_batch
-from app.inference.config import Queue, Tier
+from app.inference.queue_config import Queue, Tier
 from app.inference.scheduler import get_batch_scheduler
 from app.shared.config import setup_logging
 from prometheus_client import start_http_server

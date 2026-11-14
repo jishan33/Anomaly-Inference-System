@@ -8,8 +8,7 @@ from app.api.transaction import Transaction
 from app.inference.clients import inference_client
 from app.inference.clients.vllm_client import create_vllm_client, transaction_explainer
 from app.shared.redis import redis_client
-from app.inference.config import PredictRequest
-from app.inference.queue_service import enqueue_anomaly_predict_job, QueueJob, QueueFullError, RedisUnavailableError
+from app.inference.queue_service import enqueue_job, QueueJob, QueueFullError, RedisUnavailableError
 from app.shared.redis import redis_circuit_breaker
 
 logger = logging.getLogger(__name__)
@@ -34,10 +33,10 @@ async def risk_summaries_batch(txns: List[Transaction]):
     return {"responses": responses }
 
 @router.post(path="/predict_async")
-async def predict_async(req: PredictRequest):
+async def predict_async(txn: Transaction):
     try:
-        job: QueueJob = enqueue_anomaly_predict_job(
-            predict_request=req.model_dump(),
+        job: QueueJob = enqueue_job(
+            request=txn.model_dump(),
         )
 
     except QueueFullError as e:

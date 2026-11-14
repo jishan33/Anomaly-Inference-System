@@ -5,8 +5,7 @@ import time
 from pathlib import Path
 from pydantic import BaseModel
 
-from app.inference.config import PredictionResult
-from app.inference.features import Features
+from app.inference.prediction_models import PredictionRequest, PredictionResult
 from app.shared.metrics import MODEL_LOAD_TIME
 
 logger = logging.getLogger(__name__)
@@ -35,7 +34,7 @@ class Model:
 
         logger.info(f"model metadata: {self.metadata}")
 
-    def predict(self, features: Features) -> PredictionResult:
+    def predict(self, features: PredictionRequest) -> PredictionResult:
         feature_vector = [[features.amount]]
         prediction = self.model.predict(feature_vector)[0]
         score = self.model.decision_function(feature_vector)[0]

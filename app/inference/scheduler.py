@@ -1,7 +1,7 @@
 from typing import NamedTuple, Tuple
 
-from app.inference.config import BatchConfig, BATCH_THRESHOLDS, RATIO_THRESHOLDS
-from app.inference.config import Queue
+from app.inference.queue_config import BatchConfig, BATCH_THRESHOLDS, RATIO_THRESHOLDS
+from app.inference.queue_config import Queue
 from app.shared.metrics import  CURRENT_BATCH_SIZE, CURRENT_BATCH_TIMEOUT
 from app.inference.queue_service import get_queue_depth
 
