@@ -5,8 +5,9 @@ from dataclasses import dataclass
 from typing import Optional
 
 from app.api.transaction import Transaction
+from app.inference.clients.vllm_client import transaction_explainer, create_vllm_client, ExplanationResponse
 from app.shared.redis import redis_client
-from app.inference.queue_config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob, Tier
+from app.inference.queue_config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob, Tier, Queue
 from app.inference.prediction_models import PredictionResult
 from app.inference.clients.inference_client import process_anomaly_detection
 from app.shared.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS, \
@@ -21,40 +22,27 @@ class FetchBatchResult:
     batch: list[QueueJob]
     flush_reason: str = "unknown"
 
-def _job_to_json(job: QueueJob) -> str:
-    if hasattr(job, "model_dump_json"):
-        return job.model_dump_json()
-
-    return job.json()
-
-def _result_to_json(result: PredictionResult) -> str:
-    if hasattr(result, "model_dump_json"):
-        return result.model_dump_json()
-
-    if hasattr(result, "json"):
-        return result.json()
-
-    return json.dumps(result)
-
-def _record_batch_metrics(batch: list[QueueJob], tier: Tier, worker_role: str, flush_reason: str,) -> None:
+def _record_batch_metrics(batch: list[QueueJob], tier: Tier, worker_role: str, queue_name: str,flush_reason: str,) -> None:
     if not batch:
         return
 
     WORKER_BATCH_SIZE.labels(
         worker_role=worker_role,
         tier=tier,
+        queue_name =queue_name,
         flush_reason=flush_reason
     ).observe(len(batch))
 
     WORKER_BATCH_FLUSH_TOTAL.labels(
         worker_role=worker_role,
         tier=tier,
+        queue_name =queue_name,
         reason=flush_reason,
     ).inc()
 
 def _parse_raw_job(raw_job: OptionalRawJob, queue_name: str) -> Optional[QueueJob]:
     try:
-        return QueueJob.parse_raw(raw_job)
+        return QueueJob.model_validate_json(raw_job)
     except (json.JSONDecodeError, TypeError, ValueError) as e:
         move_to_dlq(raw_job, "invalid_job_payload")
         logger.warning("Failed to parse job from %s: %s", queue_name, e)
@@ -75,7 +63,7 @@ def _should_drop_job(job: QueueJob, raw_job: OptionalRawJob) -> bool:
 
     return False
 
-def fetch_batch(queue_name: str,
+def fetch_batch(queue_name: Queue,
                 max_batch_size: int,
                 max_wait_time: float,
                 poll_interval_seconds: float = 0.01,
@@ -130,7 +118,7 @@ def fetch_batch(queue_name: str,
 
     return FetchBatchResult(batch=batch, flush_reason="max_batch_size")
 
-def _update_queue_depth_metric(queue_name: str, tier: Tier, worker_role: str,) -> None:
+def _update_queue_depth_metric(queue_name: Queue, tier: Tier, worker_role: str,) -> None:
     queue_depth: int | None = get_queue_depth(queue_name)
     QUEUE_DEPTH.labels(worker_role=worker_role, tier=tier).set(queue_depth)
 
@@ -150,11 +138,11 @@ def _requeue_or_dlq_failed_batch(batch: list[QueueJob], queue_name: str, reason:
         job.retry_count += 1
 
         if job.retry_count >= MAX_JOB_RETRIES:
-            move_to_dlq(_job_to_json(job), reason)
+            move_to_dlq(job.model_dump_json(), reason)
 
         try:
             redis_circuit_breaker.call(
-                lambda: redis_client.rpush(queue_name, _job_to_json(job)),
+                lambda: redis_client.rpush(queue_name, job.model_dump_json()),
                 operation_name="redis_requeue",
             )
 
@@ -169,15 +157,16 @@ def _requeue_or_dlq_failed_batch(batch: list[QueueJob], queue_name: str, reason:
                 requeue_error,
             )
 
-def _save_result(job: QueueJob, result: PredictionResult) -> bool:
+def _save_result(job: QueueJob, result: PredictionResult | ExplanationResponse) -> bool:
     try:
         redis_circuit_breaker.call(
-            lambda: redis_client.set( f"job_result:{job.job_id}",_result_to_json(result)),
+            lambda: redis_client.set( f"job_result:{job.job_id}", result.model_dump_json()),
             operation_name="redis_set_result",
         )
 
         PROCESSED_REQUESTS.labels(
-            tier=result.tier,
+            tier=job.tier,
+            queue_type = job.queue_type,
         ).inc()
 
         return True
@@ -191,8 +180,8 @@ def _save_result(job: QueueJob, result: PredictionResult) -> bool:
         return False
 
 
-def process_batch(
-        queue_name: str,
+async def process_batch(
+        queue_name: Queue,
         tier: Tier,
         max_batch_size: int,
         max_wait_time: float,
@@ -222,6 +211,7 @@ def process_batch(
         batch=batch,
         tier=tier,
         worker_role=worker_role,
+        queue_name = queue_name,
         flush_reason=fetch_result.flush_reason,
     )
     num_jobs = len(batch)
@@ -238,7 +228,7 @@ def process_batch(
     start_inference = time.time()
 
     try:
-        results: list[PredictionResult] = process_anomaly_detection(transactions, tier)
+        results: list[PredictionResult] | list[ExplanationResponse] = await determine_workload_processor(queue_name, transactions, tier)
 
         latency = time.time() - start_inference
 
@@ -281,5 +271,12 @@ def process_batch(
     return all_saved
 
 
+async def determine_workload_processor(queue_name: Queue, transactions: list[Transaction], tier:Tier) -> list[PredictionResult] | list[ExplanationResponse]:
+    if queue_name in (Queue.ANOMALY_PREDICT_VIP_QUEUE, Queue.ANOMALY_PREDICT_FREE_QUEUE):
+        return process_anomaly_detection(transactions, tier)
 
+    if queue_name in (Queue.RISK_SUMMARY_VIP_QUEUE, Queue.RISK_SUMMARY_FREE_QUEUE):
+        clent = create_vllm_client()
+        return await transaction_explainer(clent, transactions)
 
+    raise RuntimeError(f"No workload processor for queue {queue_name!r}")

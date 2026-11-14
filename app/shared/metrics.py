@@ -83,32 +83,32 @@ QUEUE_WAIT_TIME = Histogram(
 CURRENT_BATCH_SIZE = Gauge(
     "current_batch_size",
     "Current adaptive batch size",
-    ["tier"]
+    ["tier", "queue_name"]
 )
 
 CURRENT_BATCH_TIMEOUT = Gauge(
     "current_batch_timeout_seconds",
     "Current adaptive batch timeout",
-    ["tier"]
+    ["tier", "queue_name"]
 )
 
 WORKER_BATCH_SIZE = Histogram(
     "worker_batch_size",
     "Observed number of jobs included in each worker batch",
-    ["worker_role", "tier", "flush_reason"],
+    ["worker_role", "tier", "queue_name", "flush_reason"],
     buckets=(1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048),
 )
 
 WORKER_BATCH_FLUSH_TOTAL = Counter(
     "worker_batch_flush_total",
     "Total number of worker batch flushes",
-    ["worker_role", "tier", "reason"]
+    ["worker_role", "tier", "queue_name", "reason"]
 )
 
 PROCESSED_REQUESTS = Counter(
     "processed_requests_total",
     "Total processed inference requests",
-    ["tier"]
+    ["tier", "queue_type"]
 )
 
 QUEUE_INGRESS_TOTAL = Counter(
