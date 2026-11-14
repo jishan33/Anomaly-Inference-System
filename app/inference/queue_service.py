@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from app.api.transaction import Transaction
 from app.inference.queue_config import Queue, RawJob, DEAD_LETTER_QUEUE, Tier, VIP_QUEUE_MAX_LOAD, \
-    FREE_QUEUE_MAX_LOAD
+    FREE_QUEUE_MAX_LOAD, QueueType
 from app.shared.metrics import QUEUE_INGRESS_TOTAL, DEAD_LETTER_QUEUE_JOBS_TOTAL, DEAD_LETTER_QUEUE_PUSH_ATTEMPTS_TOTAL, \
     DLQ_PUSH_FAILURE_TOTAL, REDIS_OPERATION_FAILURES_TOTAL, LOAD_SHED_REQUESTS_TOTAL
 from app.shared.redis import redis_circuit_breaker, redis_client
@@ -27,6 +27,7 @@ class QueueJob(BaseModel):
     request: Transaction
     created_at: float
     tier: Tier
+    queue_type: QueueType
     retry_count: int = 0
 
 class DlqPayload(TypedDict):
@@ -34,11 +35,14 @@ class DlqPayload(TypedDict):
     reason: str
     failed_at: float
 
-def _get_queue_name(tier: Tier) -> str:
-    if tier == Tier.VIP:
-        return Queue.ANOMALY_PREDICT_VIP_QUEUE
-
-    return Queue.ANOMALY_PREDICT_FREE_QUEUE
+def _get_queue_name(queue_type: QueueType, tier: Tier) -> str:
+    _QUEUE_NAMES: dict[tuple[QueueType, Tier], str] = {
+        (QueueType.ANOMALY_PREDICT, Tier.VIP): Queue.ANOMALY_PREDICT_VIP_QUEUE,
+        (QueueType.ANOMALY_PREDICT, Tier.FREE): Queue.ANOMALY_PREDICT_FREE_QUEUE,
+        (QueueType.RISK_SUMMARY, Tier.VIP): Queue.RISK_SUMMARY_VIP_QUEUE,
+        (QueueType.RISK_SUMMARY, Tier.FREE): Queue.RISK_SUMMARY_FREE_QUEUE,
+    }
+    return _QUEUE_NAMES[(queue_type, tier)]
 
 def _get_queue_limit(tier: Tier) -> int:
     if tier == Tier.VIP:
@@ -71,9 +75,9 @@ def _verify_queue_availability(queue_name: str, tier: Tier):
         LOAD_SHED_REQUESTS_TOTAL.labels(tier=tier, reason=f"{queue_name}_depth_exceeded").inc()
         raise QueueFullError(f"{queue_name} max load reached. depth={queue_depth}, limit={queue_limit}")
 
-def enqueue_job(request: Transaction) -> QueueJob:
-    tier : Tier = random.choice((Tier.VIP, Tier.Free))
-    queue_name = _get_queue_name(tier)
+def enqueue_job(queue_type: QueueType, request: Transaction) -> QueueJob:
+    tier : Tier = random.choice((Tier.VIP, Tier.FREE))
+    queue_name = _get_queue_name(queue_type, tier)
 
     _verify_queue_availability(queue_name, tier)
 
@@ -82,23 +86,24 @@ def enqueue_job(request: Transaction) -> QueueJob:
         request= request,
         created_at= time.time(),
         tier= tier,
+        queue_type= queue_type,
         retry_count= 0
     )
 
     try:
         redis_circuit_breaker.call(
-            lambda : redis_client.rpush( queue_name,job.json()),
-            operation_name=f"redis_enqueue_{tier}"
+            lambda : redis_client.rpush(queue_name,job.model_dump_json()),
+            operation_name="redis_enqueue"
         )
 
     except Exception as e:
         REDIS_OPERATION_FAILURES_TOTAL.labels(operation=f"redis_enqueue_{tier}").inc()
-        logger.error(f'redis unavailable during enqueue {tier}: {e}')
+        logger.error(f'redis unavailable during enqueue {queue_name} job: {e}')
         raise RedisUnavailableError(
-            f"Failed to enqueue job because Redis is unavailable. tier={tier}"
+            f"Failed to enqueue {queue_name} job because Redis is unavailable."
         ) from e
 
-    QUEUE_INGRESS_TOTAL.labels(tier).inc()
+    QUEUE_INGRESS_TOTAL.labels(queue_name).inc()
 
     return job
 

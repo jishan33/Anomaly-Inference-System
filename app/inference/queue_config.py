@@ -37,6 +37,8 @@ RATIO_THRESHOLDS: List[Tuple[int, float]] = [
 class Queue(StrEnum):
     ANOMALY_PREDICT_FREE_QUEUE = "anomaly_predict_free_jobs"
     ANOMALY_PREDICT_VIP_QUEUE = "anomaly_predict_vip_jobs"
+    RISK_SUMMARY_FREE_QUEUE = "risk_summary_free_jobs"
+    RISK_SUMMARY_VIP_QUEUE = "risk_summary_vip_jobs"
 
 FREE_QUEUE_MAX_LOAD = 3000
 VIP_QUEUE_MAX_LOAD = 3000
@@ -50,6 +52,8 @@ OptionalRawJob = RawJob | None
 
 class Tier(StrEnum):
     VIP = "VIP"
-    Free = "FREE"
+    FREE = "FREE"
 
-
+class QueueType(StrEnum):
+    ANOMALY_PREDICT = "ANOMALY_PREDICT"
+    RISK_SUMMARY = "RISK_SUMMARY"
