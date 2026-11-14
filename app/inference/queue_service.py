@@ -35,8 +35,8 @@ class DlqPayload(TypedDict):
     reason: str
     failed_at: float
 
-def _get_queue_name(queue_type: QueueType, tier: Tier) -> str:
-    _QUEUE_NAMES: dict[tuple[QueueType, Tier], str] = {
+def _get_queue_name(queue_type: QueueType, tier: Tier) -> Queue:
+    _QUEUE_NAMES: dict[tuple[QueueType, Tier], Queue] = {
         (QueueType.ANOMALY_PREDICT, Tier.VIP): Queue.ANOMALY_PREDICT_VIP_QUEUE,
         (QueueType.ANOMALY_PREDICT, Tier.FREE): Queue.ANOMALY_PREDICT_FREE_QUEUE,
         (QueueType.RISK_SUMMARY, Tier.VIP): Queue.RISK_SUMMARY_VIP_QUEUE,
@@ -50,7 +50,7 @@ def _get_queue_limit(tier: Tier) -> int:
 
     return FREE_QUEUE_MAX_LOAD
 
-def get_queue_depth(queue_name: str) -> int|None:
+def get_queue_depth(queue_name: Queue) -> int|None:
     try:
         queue_depth: int = redis_circuit_breaker.call(
             lambda: redis_client.llen(queue_name),
@@ -63,7 +63,7 @@ def get_queue_depth(queue_name: str) -> int|None:
         logger.error("Redis unavailable for LLEN operation on %s: %s", queue_name, e)
         return None
 
-def _verify_queue_availability(queue_name: str, tier: Tier):
+def _verify_queue_availability(queue_name: Queue, tier: Tier):
     queue_depth = get_queue_depth(queue_name)
     if queue_depth is None:
         raise  RedisUnavailableError(

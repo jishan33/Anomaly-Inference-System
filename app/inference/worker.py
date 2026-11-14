@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import time
@@ -14,7 +15,7 @@ logger.info("worker.py loaded")
 WORKER_ROLE = os.getenv("WORKER_ROLE", "unknown")
 TRITON_MODEL_NAME = os.getenv("TRITON_MODEL_NAME", "unknown")
 
-def worker_loop():
+async def worker_loop():
     logger.info("Worker loop started...")
 
     while True:
@@ -31,9 +32,9 @@ def worker_loop():
         # ----------------------------------------------------------------------
 
         if is_active_vip:
-            vip_processed = process_batch(Queue.ANOMALY_PREDICT_VIP_QUEUE, Tier.VIP, schedular.vip_max_batch_size, schedular.vip_max_wait_time, WORKER_ROLE)
+            vip_processed = await process_batch(Queue.ANOMALY_PREDICT_VIP_QUEUE, Tier.VIP, schedular.vip_max_batch_size, schedular.vip_max_wait_time, WORKER_ROLE)
         elif is_active_shared:
-            free_processed = process_batch(Queue.ANOMALY_PREDICT_FREE_QUEUE, Tier.FREE, schedular.free_max_batch_size, schedular.free_max_wait_time, WORKER_ROLE)
+            free_processed = await process_batch(Queue.ANOMALY_PREDICT_FREE_QUEUE, Tier.FREE, schedular.free_max_batch_size, schedular.free_max_wait_time, WORKER_ROLE)
 
 
         # ---------------------------------------------------------------------
@@ -53,4 +54,4 @@ def worker_loop():
 if __name__ == "__main__":
     setup_logging()
     start_http_server(9001)
-    worker_loop()
+    asyncio.run(worker_loop())

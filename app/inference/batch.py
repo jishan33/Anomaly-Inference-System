@@ -5,8 +5,9 @@ from dataclasses import dataclass
 from typing import Optional
 
 from app.api.transaction import Transaction
+from app.inference.clients.vllm_client import transaction_explainer, create_vllm_client, ExplanationResponse
 from app.shared.redis import redis_client
-from app.inference.queue_config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob, Tier
+from app.inference.queue_config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob, Tier, Queue
 from app.inference.prediction_models import PredictionResult
 from app.inference.clients.inference_client import process_anomaly_detection
 from app.shared.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS, \
@@ -36,19 +37,21 @@ def _result_to_json(result: PredictionResult) -> str:
 
     return json.dumps(result)
 
-def _record_batch_metrics(batch: list[QueueJob], tier: Tier, worker_role: str, flush_reason: str,) -> None:
+def _record_batch_metrics(batch: list[QueueJob], tier: Tier, worker_role: str, queue_name: str,flush_reason: str,) -> None:
     if not batch:
         return
 
     WORKER_BATCH_SIZE.labels(
         worker_role=worker_role,
         tier=tier,
+        queue_name =queue_name,
         flush_reason=flush_reason
     ).observe(len(batch))
 
     WORKER_BATCH_FLUSH_TOTAL.labels(
         worker_role=worker_role,
         tier=tier,
+        queue_name =queue_name,
         reason=flush_reason,
     ).inc()
 
@@ -75,7 +78,7 @@ def _should_drop_job(job: QueueJob, raw_job: OptionalRawJob) -> bool:
 
     return False
 
-def fetch_batch(queue_name: str,
+def fetch_batch(queue_name: Queue,
                 max_batch_size: int,
                 max_wait_time: float,
                 poll_interval_seconds: float = 0.01,
@@ -130,7 +133,7 @@ def fetch_batch(queue_name: str,
 
     return FetchBatchResult(batch=batch, flush_reason="max_batch_size")
 
-def _update_queue_depth_metric(queue_name: str, tier: Tier, worker_role: str,) -> None:
+def _update_queue_depth_metric(queue_name: Queue, tier: Tier, worker_role: str,) -> None:
     queue_depth: int | None = get_queue_depth(queue_name)
     QUEUE_DEPTH.labels(worker_role=worker_role, tier=tier).set(queue_depth)
 
@@ -178,6 +181,7 @@ def _save_result(job: QueueJob, result: PredictionResult) -> bool:
 
         PROCESSED_REQUESTS.labels(
             tier=result.tier,
+            queue_type = job.queue_type,
         ).inc()
 
         return True
@@ -191,8 +195,8 @@ def _save_result(job: QueueJob, result: PredictionResult) -> bool:
         return False
 
 
-def process_batch(
-        queue_name: str,
+async def process_batch(
+        queue_name: Queue,
         tier: Tier,
         max_batch_size: int,
         max_wait_time: float,
@@ -222,6 +226,7 @@ def process_batch(
         batch=batch,
         tier=tier,
         worker_role=worker_role,
+        queue_name = queue_name,
         flush_reason=fetch_result.flush_reason,
     )
     num_jobs = len(batch)
@@ -238,7 +243,7 @@ def process_batch(
     start_inference = time.time()
 
     try:
-        results: list[PredictionResult] = process_anomaly_detection(transactions, tier)
+        results: list[PredictionResult] | list[ExplanationResponse] = await determine_workload_processor(queue_name, transactions, tier)
 
         latency = time.time() - start_inference
 
@@ -283,3 +288,11 @@ def process_batch(
 
 
 
+async def determine_workload_processor(queue_name: Queue, transactions: list[Transaction], tier:Tier) -> list[PredictionResult] | list[ExplanationResponse]:
+    if queue_name == Queue.ANOMALY_PREDICT_VIP_QUEUE or Queue.ANOMALY_PREDICT_FREE_QUEUE:
+        return process_anomaly_detection(transactions, tier)
+    elif queue_name == Queue.RISK_SUMMARY_VIP_QUEUE or Queue.RISK_SUMMARY_FREE_QUEUE:
+        clent = create_vllm_client()
+        return await transaction_explainer(clent, transactions)
+    else:
+        raise RuntimeError(f"Cannot determine workload processor for unknow queue name: {queue_name}")
