@@ -4,8 +4,8 @@ import time
 import tritonclient.grpc as grpcclient
 
 from app.api.transaction import Transaction
-from app.inference.prediction_models import to_prediction_request, PredictionRequest, PredictionResult
-from app.inference.queue_config import Tier
+from app.inference.models.prediction_model import to_prediction_request, PredictionRequest, PredictionResult
+from app.inference.configs.queue_config import Tier
 from app.inference.model_selection import determine_model_name, determine_model_versions_based_on_rollout_mode, \
     SelectedModelVersions
 from app.shared.metrics import WORKER_TRITON_REQUEST_LATENCY_SECONDS, WORKER_TRITON_SERIALIZATION_SECONDS, \

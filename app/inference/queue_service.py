@@ -4,45 +4,17 @@ import logging
 import random
 import time
 import uuid
-from typing import TypedDict
-from pydantic import BaseModel
 
 from app.api.transaction import Transaction
-from app.inference.queue_config import Queue, RawJob, DEAD_LETTER_QUEUE, Tier, VIP_QUEUE_MAX_LOAD, \
+from app.inference.models.queue_job_model import QueueJob, DlqPayload, QueueFullError, \
+    RedisUnavailableError
+from app.inference.configs.queue_config import get_queue_name, Queue, RawJob, DEAD_LETTER_QUEUE, Tier, VIP_QUEUE_MAX_LOAD, \
     FREE_QUEUE_MAX_LOAD, QueueType
 from app.shared.metrics import QUEUE_INGRESS_TOTAL, DEAD_LETTER_QUEUE_JOBS_TOTAL, DEAD_LETTER_QUEUE_PUSH_ATTEMPTS_TOTAL, \
     DLQ_PUSH_FAILURE_TOTAL, REDIS_OPERATION_FAILURES_TOTAL, LOAD_SHED_REQUESTS_TOTAL
 from app.shared.redis import redis_circuit_breaker, redis_client
 
 logger = logging.getLogger(__name__)
-
-class QueueFullError(Exception):
-    """Raised when a queue has reached its configured admission limit."""
-
-class RedisUnavailableError(Exception):
-    """Raised when Redis cannot be reached or a Redis operation fails."""
-
-class QueueJob(BaseModel):
-    job_id: str
-    request: Transaction
-    created_at: float
-    tier: Tier
-    queue_type: QueueType
-    retry_count: int = 0
-
-class DlqPayload(TypedDict):
-    raw_job: RawJob
-    reason: str
-    failed_at: float
-
-def get_queue_name(queue_type: QueueType, tier: Tier) -> Queue:
-    _QUEUE_NAMES: dict[tuple[QueueType, Tier], Queue] = {
-        (QueueType.ANOMALY_PREDICT, Tier.VIP): Queue.ANOMALY_PREDICT_VIP_QUEUE,
-        (QueueType.ANOMALY_PREDICT, Tier.FREE): Queue.ANOMALY_PREDICT_FREE_QUEUE,
-        (QueueType.RISK_SUMMARY, Tier.VIP): Queue.RISK_SUMMARY_VIP_QUEUE,
-        (QueueType.RISK_SUMMARY, Tier.FREE): Queue.RISK_SUMMARY_FREE_QUEUE,
-    }
-    return _QUEUE_NAMES[(queue_type, tier)]
 
 def _get_queue_limit(tier: Tier) -> int:
     if tier == Tier.VIP:
