@@ -17,12 +17,12 @@ logger = logging.getLogger(__name__)
 
 TRITON_CLIENT = grpcclient.InferenceServerClient(url="triton:8001")
 
-def process_anomaly_detection(transactions:list[Transaction], tier: Tier) -> list[PredictionResult]:
+def process_anomaly_detection(transactions_with_job_ids:list[tuple[Transaction, str]], tier: Tier) -> list[PredictionResult]:
     results: list[PredictionResult] = []
 
-    for transaction in transactions:
+    for transaction, job_id in transactions_with_job_ids:
         try:
-            request: PredictionRequest = to_prediction_request(transaction, tier)
+            request: PredictionRequest = to_prediction_request(transaction, tier, job_id)
             result: PredictionResult = process_transaction(request)
             results.append(result)
 
@@ -176,8 +176,7 @@ def postprocess_output(raw_response: InferResult, features: PredictionRequest, m
         score_value = float(score_raw.reshape(-1)[0])
 
         result = PredictionResult(
-            customer_token= features.customer_token,
-            transaction_token= features.transaction_token,
+            request_id= features.request_id,
             is_anomaly=bool(is_anomaly_value == 1),
             score=score_value,
             tier=features.tier,

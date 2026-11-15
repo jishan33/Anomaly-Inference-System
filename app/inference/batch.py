@@ -204,7 +204,7 @@ async def process_batch(
     """
     fetch_result = fetch_batch(queue_name=queue_name, max_batch_size=max_batch_size, max_wait_time=max_wait_time )
 
-    batch = fetch_result.batch
+    batch: list[QueueJob] = fetch_result.batch
     if not batch:
         return False
 
@@ -224,12 +224,12 @@ async def process_batch(
         worker_role=worker_role,
     )
 
-    transactions: list[Transaction] = [job.request for job in batch]
+    transactions_with_job_ids: list[tuple[Transaction, str]] = [(job.request, job.job_id) for job in batch]
 
     start_inference = time.time()
 
     try:
-        results: list[PredictionResult] | list[ExplanationResponse] = await determine_workload_processor(queue_name, transactions, tier)
+        results: list[PredictionResult] | list[ExplanationResponse] = await determine_workload_processor(queue_name, transactions_with_job_ids, tier)
 
         latency = time.time() - start_inference
 
@@ -272,12 +272,12 @@ async def process_batch(
     return all_saved
 
 
-async def determine_workload_processor(queue_name: Queue, transactions: list[Transaction], tier:Tier) -> list[PredictionResult] | list[ExplanationResponse]:
+async def determine_workload_processor(queue_name: Queue, transactions_with_job_ids: list[tuple[Transaction, str]], tier:Tier) -> list[PredictionResult] | list[ExplanationResponse]:
     if queue_name in (Queue.ANOMALY_PREDICT_VIP_QUEUE, Queue.ANOMALY_PREDICT_FREE_QUEUE):
-        return process_anomaly_detection(transactions, tier)
+        return process_anomaly_detection(transactions_with_job_ids, tier)
 
     if queue_name in (Queue.RISK_SUMMARY_VIP_QUEUE, Queue.RISK_SUMMARY_FREE_QUEUE):
         clent = create_vllm_client()
-        return await transaction_explainer(clent, transactions)
+        return await transaction_explainer(clent, transactions_with_job_ids)
 
     raise RuntimeError(f"No workload processor for queue {queue_name!r}")
