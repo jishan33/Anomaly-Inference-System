@@ -6,11 +6,12 @@ from app.api.transaction import generate_risk_evaluated_transaction
 from app.inference.clients import vllm_client
 from openai import APITimeoutError
 from unittest.mock import AsyncMock, MagicMock, patch
-from types import SimpleNamespace
+
+from app.inference.models.risk_sunmmary_model import to_risk_summary_requests
 
 VLLM_URL = "https://vllm.example.test"
 API_KEY = "test-key"
-MODEL = "transaction-explainer"
+MODEL = "request-explainer"
 
 class TestHealthCheck(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
@@ -58,12 +59,16 @@ class TestHealthCheck(unittest.IsolatedAsyncioTestCase):
 
 class TestTransactionsExplainer(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
+        transaction_1 = generate_risk_evaluated_transaction()
+        transaction_2 = generate_risk_evaluated_transaction()
+
         self.client = MagicMock()
         self.client.post = AsyncMock()
-        self.transactions = [
-            generate_risk_evaluated_transaction(),
-            generate_risk_evaluated_transaction(),
+        self.transactions_with_ids = [
+            (transaction_1, "job_id_1"),
+            (transaction_2, "job_id_2")
         ]
+        self.requests = to_risk_summary_requests(self.transactions_with_ids)
 
     async def test_sends_one_conversation_per_transaction(self):
         self.client.post.return_value = {
@@ -74,7 +79,7 @@ class TestTransactionsExplainer(unittest.IsolatedAsyncioTestCase):
         }
 
         responses = await vllm_client.transaction_explainer(
-            self.client, self.transactions
+            self.client, self.transactions_with_ids
         )
 
         self.client.post.assert_awaited_once()
@@ -87,16 +92,16 @@ class TestTransactionsExplainer(unittest.IsolatedAsyncioTestCase):
         self.assertIs(body["stream"], False)
 
         conversations = body["messages"]
-        self.assertEqual(len(conversations), len(self.transactions))
+        self.assertEqual(len(conversations), len(self.transactions_with_ids))
 
-        for index, (conversation, transaction) in enumerate(
-                zip(conversations, self.transactions)
+        for index, (conversation, requests) in enumerate(
+                zip(conversations, self.requests)
         ):
             with self.subTest(transaction_index=index):
                 system_message, user_message = conversation
                 self.assertEqual(system_message["role"], "system")
                 self.assertEqual(user_message["role"], "user")
-                self.assertEqual(json.loads(user_message["content"]), transaction.model_dump(mode="json"))
+                self.assertEqual(json.loads(user_message["content"]), requests.model_dump(mode="json"))
 
         self.assertEqual(
             [(response.index, response.content) for response in responses],
@@ -113,7 +118,7 @@ class TestTransactionsExplainer(unittest.IsolatedAsyncioTestCase):
 
         with self.assertRaises(APITimeoutError) as raised:
             await vllm_client.transaction_explainer(
-                self.client, self.transactions
+                self.client, self.transactions_with_ids
             )
 
         self.assertIs(raised.exception, timeout)

@@ -7,12 +7,13 @@ from typing import Optional
 from app.api.transaction import Transaction
 from app.inference.clients.vllm_client import transaction_explainer, create_vllm_client, ExplanationResponse
 from app.shared.redis import redis_client
-from app.inference.queue_config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob, Tier, Queue
-from app.inference.prediction_models import PredictionResult
+from app.inference.configs.queue_config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob, Tier, Queue
+from app.inference.models.prediction_model import PredictionResult
 from app.inference.clients.inference_client import process_anomaly_detection
 from app.shared.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS, \
     REDIS_OPERATION_FAILURES_TOTAL, WORKER_BATCH_SIZE, WORKER_BATCH_FLUSH_TOTAL
-from app.inference.queue_service import QueueJob, get_queue_depth, move_to_dlq
+from app.inference.queue_service import get_queue_depth, move_to_dlq
+from app.inference.models.queue_job_model import QueueJob
 from app.shared.redis import redis_circuit_breaker
 
 logger = logging.getLogger(__name__)
@@ -203,7 +204,7 @@ async def process_batch(
     """
     fetch_result = fetch_batch(queue_name=queue_name, max_batch_size=max_batch_size, max_wait_time=max_wait_time )
 
-    batch = fetch_result.batch
+    batch: list[QueueJob] = fetch_result.batch
     if not batch:
         return False
 
@@ -223,12 +224,12 @@ async def process_batch(
         worker_role=worker_role,
     )
 
-    transactions: list[Transaction] = [job.request for job in batch]
+    transactions_with_job_ids: list[tuple[Transaction, str]] = [(job.request, job.job_id) for job in batch]
 
     start_inference = time.time()
 
     try:
-        results: list[PredictionResult] | list[ExplanationResponse] = await determine_workload_processor(queue_name, transactions, tier)
+        results: list[PredictionResult] | list[ExplanationResponse] = await determine_workload_processor(queue_name, transactions_with_job_ids, tier)
 
         latency = time.time() - start_inference
 
@@ -271,12 +272,12 @@ async def process_batch(
     return all_saved
 
 
-async def determine_workload_processor(queue_name: Queue, transactions: list[Transaction], tier:Tier) -> list[PredictionResult] | list[ExplanationResponse]:
+async def determine_workload_processor(queue_name: Queue, transactions_with_job_ids: list[tuple[Transaction, str]], tier:Tier) -> list[PredictionResult] | list[ExplanationResponse]:
     if queue_name in (Queue.ANOMALY_PREDICT_VIP_QUEUE, Queue.ANOMALY_PREDICT_FREE_QUEUE):
-        return process_anomaly_detection(transactions, tier)
+        return process_anomaly_detection(transactions_with_job_ids, tier)
 
     if queue_name in (Queue.RISK_SUMMARY_VIP_QUEUE, Queue.RISK_SUMMARY_FREE_QUEUE):
         clent = create_vllm_client()
-        return await transaction_explainer(clent, transactions)
+        return await transaction_explainer(clent, transactions_with_job_ids)
 
     raise RuntimeError(f"No workload processor for queue {queue_name!r}")

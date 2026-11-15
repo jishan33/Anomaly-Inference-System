@@ -8,6 +8,9 @@ from openai import AsyncOpenAI, APITimeoutError, APIConnectionError
 from pydantic import BaseModel
 from typing import List
 
+from app.inference.models.risk_sunmmary_model import to_risk_summary_requests
+
+
 class ExplanationResponse(BaseModel):
     index: int
     content: str
@@ -35,7 +38,7 @@ async def main():
         async with client:
             models = await client.models.list()
             print("Available models:", [model.id for model in models.data])
-            responses = await transaction_explainer(client, [txn])
+            responses = await transaction_explainer(client, [(txn, "job_id")])
             print(f"Responses: {responses}")
 
     except (TimeoutError, APITimeoutError, APIConnectionError) as exc:
@@ -58,16 +61,18 @@ async def health_check() -> int:
     return response.status_code
 
 
-async def transaction_explainer(client: AsyncOpenAI, transactions:List[Transaction]) -> List[ExplanationResponse]:
+async def transaction_explainer(client: AsyncOpenAI, transactions_with_job_ids: list[tuple[Transaction, str]]) -> List[ExplanationResponse]:
+    requests = to_risk_summary_requests(transactions_with_job_ids)
+
     conversations = [
         [
             {
                 "role": "system",
-                "content": "Explain this transaction using only the supplied facts.",
+                "content": "Explain this request using only the supplied facts.",
             },
-            {"role": "user", "content": transaction.model_dump_json()},
+            {"role": "user", "content": request.model_dump_json()},
         ]
-        for transaction in transactions
+        for request in requests
     ]
 
     async with client:
@@ -75,7 +80,7 @@ async def transaction_explainer(client: AsyncOpenAI, transactions:List[Transacti
             "/chat/completions/batch",
             cast_to=dict,
             body={
-                "model": "transaction-explainer",
+                "model": "request-explainer",
                 "messages": conversations,
                 "max_tokens": 1000,
                 "temperature": 0,
