@@ -2,36 +2,16 @@ from datetime import datetime, timezone
 import json
 import logging
 
-from typing import List
-from fastapi import APIRouter, HTTPException
 from app.api.transaction import Transaction
 from app.inference.clients import inference_client
-from app.inference.clients.vllm_client import create_vllm_client, transaction_explainer
-from app.inference.queue_config import QueueType
-from app.shared.redis import redis_client
-from app.inference.queue_service import enqueue_job, QueueJob, QueueFullError, RedisUnavailableError
-from app.shared.redis import redis_circuit_breaker
+from app.inference.configs.queue_config import QueueType
+from app.inference.queue_service import enqueue_job
+from app.inference.models.queue_job_model import QueueJob, QueueFullError, RedisUnavailableError
+from app.shared.redis import redis_client, redis_circuit_breaker
+from fastapi import APIRouter, HTTPException
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-@router.post(path="/risk_summaries/batch")
-async def risk_summaries_batch(txns: List[Transaction]):
-    try:
-        client = create_vllm_client()
-        responses = await transaction_explainer(client, txns)
-    except Exception as exc:
-        logger.exception(
-            "Failed to generate batch risk summaries (%s): %s",
-            type(exc).__name__,
-            exc,
-        )
-        raise HTTPException(
-            status_code=503,
-            detail="Failed to generate risk summaries."
-        ) from exc
-
-    return {"responses": responses }
 
 @router.post(path="/risk_summary/async")
 async def risk_summary_async(txn: Transaction):
@@ -90,7 +70,7 @@ async def predict_async(txn: Transaction):
         "created_at": created_at_utc
     }
 
-@router.get("/anomaly_predict_result/{job_id}")
+@router.get("/result/{job_id}")
 async def get_result(job_id:str):
     try:
         result = redis_circuit_breaker.call(
@@ -107,28 +87,8 @@ async def get_result(job_id:str):
         return {"status": "processing"}
 
     data =  json.loads(result)
+
     return data
-
-
-@router.get("/risk_summary_result/{job_id}")
-async def get_result(job_id:str):
-    try:
-        result = redis_circuit_breaker.call(
-            lambda: redis_client.get(f"job_result:{job_id}"),
-            operation_name="redis_get_result",
-        )
-    except Exception:
-        raise HTTPException(
-            status_code=503,
-            detail="Result store is temporarily unavailable"
-        )
-
-    if not result:
-        return {"status": "processing"}
-
-    data =  json.loads(result)
-    return data
-
 
 @router.get("/model_metadata")
 async def get_model_metadata():
