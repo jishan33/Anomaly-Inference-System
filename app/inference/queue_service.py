@@ -6,21 +6,17 @@ import time
 import uuid
 
 from app.api.transaction import Transaction
+from app.inference.models.risk_summary_model import RiskSummaryResponse
+from app.inference.models.prediction_model import PredictionResult
 from app.inference.models.queue_job_model import QueueJob, DlqPayload, QueueFullError, \
     RedisUnavailableError
 from app.inference.configs.queue_config import get_queue_name, Queue, RawJob, DEAD_LETTER_QUEUE, Tier, VIP_QUEUE_MAX_LOAD, \
     FREE_QUEUE_MAX_LOAD, QueueType
 from app.shared.metrics import QUEUE_INGRESS_TOTAL, DEAD_LETTER_QUEUE_JOBS_TOTAL, DEAD_LETTER_QUEUE_PUSH_ATTEMPTS_TOTAL, \
-    DLQ_PUSH_FAILURE_TOTAL, REDIS_OPERATION_FAILURES_TOTAL, LOAD_SHED_REQUESTS_TOTAL
+    DLQ_PUSH_FAILURE_TOTAL, REDIS_OPERATION_FAILURES_TOTAL, LOAD_SHED_REQUESTS_TOTAL, PROCESSED_REQUESTS
 from app.shared.redis import redis_circuit_breaker, redis_client
 
 logger = logging.getLogger(__name__)
-
-def _get_queue_limit(tier: Tier) -> int:
-    if tier == Tier.VIP:
-        return VIP_QUEUE_MAX_LOAD
-
-    return FREE_QUEUE_MAX_LOAD
 
 def get_queue_depth(queue_name: Queue) -> int|None:
     try:
@@ -34,6 +30,12 @@ def get_queue_depth(queue_name: Queue) -> int|None:
         REDIS_OPERATION_FAILURES_TOTAL.labels(operation=f"redis_llen_{queue_name}").inc()
         logger.error("Redis unavailable for LLEN operation on %s: %s", queue_name, e)
         return None
+
+def _get_queue_limit(tier: Tier) -> int:
+    if tier == Tier.VIP:
+        return VIP_QUEUE_MAX_LOAD
+
+    return FREE_QUEUE_MAX_LOAD
 
 def _verify_queue_availability(queue_name: Queue, tier: Tier):
     queue_depth = get_queue_depth(queue_name)
@@ -75,7 +77,11 @@ def enqueue_job(queue_type: QueueType, request: Transaction) -> QueueJob:
             f"Failed to enqueue {queue_name} job because Redis is unavailable."
         ) from e
 
-    QUEUE_INGRESS_TOTAL.labels(queue_name).inc()
+    QUEUE_INGRESS_TOTAL.labels(
+        queue_name=queue_name,
+        tier= tier,
+        queue_type= queue_type,
+    ).inc()
 
     return job
 

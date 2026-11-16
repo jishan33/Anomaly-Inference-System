@@ -30,19 +30,6 @@ LOAD_SHED_REQUESTS_TOTAL = Counter(
     ["tier", "reason"]
 )
 
-# ------------------------
-# Anomaly / Business Metrics
-# ------------------------
-ANOMALY_COUNT = Counter(
-    "anomaly_detected_total",
-    "Total number of detected anomalies",
-    ["type"]  # type user, volume, transaction
-)
-
-USER_RATE_LIMIT = Gauge(
-    "user_rate_limited_total",
-    "Number of users rate-limited in last minute",
-)
 
 VOLUME_GAUGE = Gauge(
     "transaction_volume_last_minute",
@@ -70,14 +57,13 @@ RETRY_COUNT = Counter(
 QUEUE_DEPTH = Gauge(
     "inference_queue_depth",
     "Number of jobs waiting in inference queue",
-    ["worker_role", "tier"]
-
+    ["worker_role", "tier", "queue_name"]
 )
 
 QUEUE_WAIT_TIME = Histogram(
     "queue_wait_latency_seconds",
     "Time spent on queue waiting",
-    ["worker_role", "tier"]
+    ["worker_role", "tier", "queue_name"]
 )
 
 CURRENT_BATCH_SIZE = Gauge(
@@ -114,7 +100,7 @@ PROCESSED_REQUESTS = Counter(
 QUEUE_INGRESS_TOTAL = Counter(
     "queue_ingress_total",
     "Total number of ingress requests added to the queue",
-    ["queue_name"]
+    ["queue_name", "tier", "queue_type"]
 )
 
 ACTIVE_WORKERS = Gauge(
@@ -182,19 +168,17 @@ MODEL_LOAD_TIME = Histogram(
 )
 
 
-# Triton Inference Server Client
-
 WORKER_PROCESSING_LATENCY = Histogram(
     "worker_processing_latency_seconds",
     "Time spent processing inference jobs",
-    ["worker_role", "tier"]
+    ["worker_role", "tier", "queue_name"]
 
 )
 
 WORKER_PROCESSING_FAILURES_TOTAL = Counter(
     "worker_processing_failures_total",
     "Total number of worker processing failures by stage",
-    ["stage", "error_type", "tier", "model_name", "model_version"],
+    ["stage", "error_type", "tier", "model_name", "model_version", "queue_name"],
 )
 
 WORKER_TRITON_REQUEST_LATENCY_SECONDS = Histogram(

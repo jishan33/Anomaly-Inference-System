@@ -1,6 +1,5 @@
 from enum import StrEnum
 
-
 #-------------------
 # Queue Jobs
 #-------------------
