@@ -107,3 +107,35 @@ def move_to_dlq(raw_job: RawJob, reason: str) -> bool:
             f"reason={reason}, error={e}, raw_job={raw_job}"
         )
         return False
+
+def _build_job_result(job: QueueJob, result: PredictionResult | RiskSummaryResponse) -> dict:
+    return {
+        "job": job.model_dump(mode="json"),
+        "result": result.model_dump(mode="json"),
+     }
+
+def save_result(job: QueueJob, result: PredictionResult | RiskSummaryResponse) -> bool:
+    try:
+        job_result: dict = _build_job_result(job, result)
+        payload = json.dumps(job_result)
+
+        redis_circuit_breaker.call(
+            lambda: redis_client.set(
+                f"job_result:{job.job_id}", payload),
+            operation_name="redis_set_result",
+        )
+
+        PROCESSED_REQUESTS.labels(
+            tier=job.tier,
+            queue_type = job.queue_type,
+        ).inc()
+
+        return True
+
+    except Exception as e:
+        REDIS_OPERATION_FAILURES_TOTAL.labels(
+            operation="redis_set_result",
+        ).inc()
+
+        logger.error("Redis unavailable during set_result for job %s: %s", job.job_id, e)
+        return False
