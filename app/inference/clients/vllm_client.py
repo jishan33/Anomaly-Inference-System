@@ -5,15 +5,9 @@ import os
 from app.api.transaction import Transaction, generate_risk_evaluated_transaction
 from httpx2 import Response
 from openai import AsyncOpenAI, APITimeoutError, APIConnectionError
-from pydantic import BaseModel
 from typing import List
 
-from app.inference.models.risk_sunmmary_model import to_risk_summary_requests
-
-
-class ExplanationResponse(BaseModel):
-    index: int
-    content: str
+from app.inference.models.risk_summary_model import RiskSummaryResponse, to_risk_summary_requests
 
 URL = os.getenv("VLLM_URL")
 API_KEY = os.getenv("VLLM_API_KEY")
@@ -38,7 +32,8 @@ async def main():
         async with client:
             models = await client.models.list()
             print("Available models:", [model.id for model in models.data])
-            responses = await transaction_explainer(client, [(txn, "job_id")])
+
+            responses = await generate_risk_summaries(client, [(txn, "job_id")])
             print(f"Responses: {responses}")
 
     except (TimeoutError, APITimeoutError, APIConnectionError) as exc:
@@ -53,6 +48,7 @@ async def health_check() -> int:
             )
             response.raise_for_status()
             print(f"Health HTTP {response.status_code}")
+
     except (httpx2.HTTPError, APIConnectionError) as exc:
         raise RuntimeError(
             "The transaction explanation service is unavailable right now."
@@ -61,14 +57,18 @@ async def health_check() -> int:
     return response.status_code
 
 
-async def transaction_explainer(client: AsyncOpenAI, transactions_with_job_ids: list[tuple[Transaction, str]]) -> List[ExplanationResponse]:
+async def generate_risk_summaries(client: AsyncOpenAI, transactions_with_job_ids: list[tuple[Transaction, str]]) -> List[
+    RiskSummaryResponse]:
     requests = to_risk_summary_requests(transactions_with_job_ids)
 
     conversations = [
         [
             {
                 "role": "system",
-                "content": "Explain this request using only the supplied facts.",
+                "content": "Summarize the transaction's risk assessment using only the supplied facts. "
+                           "Explain the assigned risk label using the destination risk score and any "
+                           "risk signals provided. If no supporting signals are provided, say so. "
+                           "Do not infer missing facts or treat the risk label as proof of a scam.",
             },
             {"role": "user", "content": request.model_dump_json()},
         ]
@@ -89,7 +89,7 @@ async def transaction_explainer(client: AsyncOpenAI, transactions_with_job_ids: 
         )
 
     return [
-        ExplanationResponse(
+        RiskSummaryResponse(
             index=choice["index"],
             content=choice["message"]["content"],
         )

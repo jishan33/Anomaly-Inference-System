@@ -7,7 +7,7 @@ from app.inference.clients import vllm_client
 from openai import APITimeoutError
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.inference.models.risk_sunmmary_model import to_risk_summary_requests
+from app.inference.models.risk_summary_model import to_risk_summary_requests
 
 VLLM_URL = "https://vllm.example.test"
 API_KEY = "test-key"
@@ -78,7 +78,7 @@ class TestTransactionsExplainer(unittest.IsolatedAsyncioTestCase):
             ]
         }
 
-        responses = await vllm_client.transaction_explainer(
+        responses = await vllm_client.generate_risk_summaries(
             self.client, self.transactions_with_ids
         )
 
@@ -117,7 +117,7 @@ class TestTransactionsExplainer(unittest.IsolatedAsyncioTestCase):
         self.client.post.side_effect = timeout
 
         with self.assertRaises(APITimeoutError) as raised:
-            await vllm_client.transaction_explainer(
+            await vllm_client.generate_risk_summaries(
                 self.client, self.transactions_with_ids
             )
 

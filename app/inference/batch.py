@@ -5,14 +5,14 @@ from dataclasses import dataclass
 from typing import Optional
 
 from app.api.transaction import Transaction
-from app.inference.clients.vllm_client import transaction_explainer, create_vllm_client, ExplanationResponse
+from app.inference.clients.vllm_client import generate_risk_summaries, create_vllm_client
+from app.inference.models.risk_summary_model import RiskSummaryResponse, to_risk_summary_requests
 from app.shared.redis import redis_client
 from app.inference.configs.queue_config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob, Tier, Queue
 from app.inference.models.prediction_model import PredictionResult
 from app.inference.clients.inference_client import process_anomaly_detection
-from app.shared.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, PROCESSED_REQUESTS, \
-    REDIS_OPERATION_FAILURES_TOTAL, WORKER_BATCH_SIZE, WORKER_BATCH_FLUSH_TOTAL
-from app.inference.queue_service import get_queue_depth, move_to_dlq
+from app.shared.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, REDIS_OPERATION_FAILURES_TOTAL, WORKER_BATCH_SIZE, WORKER_BATCH_FLUSH_TOTAL
+from app.inference.queue_service import get_queue_depth, move_to_dlq, save_result
 from app.inference.models.queue_job_model import QueueJob
 from app.shared.redis import redis_circuit_breaker
 
