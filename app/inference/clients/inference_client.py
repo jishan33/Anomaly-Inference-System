@@ -5,7 +5,7 @@ import tritonclient.grpc as grpcclient
 
 from app.api.transaction import Transaction
 from app.inference.models.prediction_model import to_prediction_request, PredictionRequest, PredictionResult
-from app.inference.configs.queue_config import Tier
+from app.inference.configs.queue_config import Tier, Queue
 from app.inference.model_selection import determine_model_name, determine_model_versions_based_on_rollout_mode, \
     SelectedModelVersions
 from app.shared.metrics import WORKER_TRITON_REQUEST_LATENCY_SECONDS, WORKER_TRITON_SERIALIZATION_SECONDS, \
@@ -17,13 +17,13 @@ logger = logging.getLogger(__name__)
 
 TRITON_CLIENT = grpcclient.InferenceServerClient(url="triton:8001")
 
-def process_anomaly_detection(transactions_with_job_ids:list[tuple[Transaction, str]], tier: Tier) -> list[PredictionResult]:
+def process_anomaly_detection(transactions_with_job_ids:list[tuple[Transaction, str]], tier: Tier, queue_name: Queue) -> list[PredictionResult]:
     results: list[PredictionResult] = []
 
     for transaction, job_id in transactions_with_job_ids:
         try:
             request: PredictionRequest = to_prediction_request(transaction, tier, job_id)
-            result: PredictionResult = process_transaction(request)
+            result: PredictionResult = process_transaction(request, queue_name)
             results.append(result)
 
         except Exception as e:
@@ -31,6 +31,7 @@ def process_anomaly_detection(transactions_with_job_ids:list[tuple[Transaction, 
                 stage="transaction_processing",
                 error=e,
                 tier=tier,
+                queue_name=queue_name,
             )
 
             logger.exception(
@@ -42,7 +43,7 @@ def process_anomaly_detection(transactions_with_job_ids:list[tuple[Transaction, 
 
     return results
 
-def process_transaction(features: PredictionRequest) -> PredictionResult:
+def process_transaction(features: PredictionRequest, queue_name:Queue) -> PredictionResult:
     try:
         model_name: str = determine_model_name()
         versions: SelectedModelVersions = determine_model_versions_based_on_rollout_mode(model_name)
@@ -52,16 +53,17 @@ def process_transaction(features: PredictionRequest) -> PredictionResult:
             stage="model_selection",
             error=e,
             tier=features.tier,
+            queue_name=queue_name,
         )
         logger.exception("Failed to determine model selection")
         raise
 
-    stable = infer_single_version(features, versions.primary_version, model_name)
+    stable = infer_single_version(features, versions.primary_version, model_name, queue_name)
 
     if versions.shadow_version is not None:
         try:
-            shadow = infer_single_version(features, versions.shadow_version, model_name)
-            record_shadow_comparison(stable, shadow, model_name)
+            shadow = infer_single_version(features, versions.shadow_version, model_name, queue_name)
+            record_shadow_comparison(stable, shadow, model_name, queue_name)
 
         except Exception as e:
             record_worker_failure(
@@ -70,6 +72,7 @@ def process_transaction(features: PredictionRequest) -> PredictionResult:
                 tier=features.tier,
                 model_name=model_name,
                 model_version=versions.shadow_version,
+                queue_name=queue_name
             )
 
             logger.exception(
@@ -83,12 +86,12 @@ def process_transaction(features: PredictionRequest) -> PredictionResult:
 
     return stable
 
-def infer_single_version(features: PredictionRequest, model_version: str, model_name: str) -> PredictionResult:
-    triton_inputs: list[InferInput] = preprocess_input(features, model_version, model_name)
-    raw_response: InferResult = run_inference(triton_inputs, features, model_version, model_name)
-    return postprocess_output(raw_response, features, model_version, model_name)
+def infer_single_version(features: PredictionRequest, model_version: str, model_name: str, queue_name:Queue) -> PredictionResult:
+    triton_inputs: list[InferInput] = preprocess_input(features, model_version, model_name, queue_name)
+    raw_response: InferResult = run_inference(triton_inputs, features, model_version, model_name, queue_name)
+    return postprocess_output(raw_response, features, model_version, model_name, queue_name)
 
-def preprocess_input(features: PredictionRequest, model_version: str, model_name: str) -> list[InferInput]:
+def preprocess_input(features: PredictionRequest, model_version: str, model_name: str, queue_name:Queue) -> list[InferInput]:
     serialize_start = time.perf_counter()
 
     try:
@@ -114,6 +117,7 @@ def preprocess_input(features: PredictionRequest, model_version: str, model_name
             tier=features.tier,
             model_name=model_name,
             model_version=model_version,
+            queue_name=queue_name,
         )
         logger.exception("Failed to serialize Triton input")
         raise
@@ -127,7 +131,7 @@ def preprocess_input(features: PredictionRequest, model_version: str, model_name
             model_version=model_version,
         ).observe(serialize_end - serialize_start)
 
-def run_inference(inputs: list[InferInput], features: PredictionRequest, model_version: str, model_name: str) -> InferResult:
+def run_inference(inputs: list[InferInput], features: PredictionRequest, model_version: str, model_name: str, queue_name:Queue) -> InferResult:
     outputs: list[InferRequestedOutput] = [
         grpcclient.InferRequestedOutput("OUTPUT"),
         grpcclient.InferRequestedOutput("SCORE")
@@ -152,6 +156,7 @@ def run_inference(inputs: list[InferInput], features: PredictionRequest, model_v
             tier=features.tier,
             model_name=model_name,
             model_version=model_version,
+            queue_name=queue_name,
         )
         logger.exception("Triton inference request failed")
         raise
@@ -165,7 +170,7 @@ def run_inference(inputs: list[InferInput], features: PredictionRequest, model_v
             model_version=model_version,
         ).observe(network_end - network_start)
 
-def postprocess_output(raw_response: InferResult, features: PredictionRequest, model_version: str, model_name: str) -> PredictionResult:
+def postprocess_output(raw_response: InferResult, features: PredictionRequest, model_version: str, model_name: str, queue_name: Queue) -> PredictionResult:
     deserialize_start = time.perf_counter()
 
     try:
@@ -203,6 +208,7 @@ def postprocess_output(raw_response: InferResult, features: PredictionRequest, m
             tier=features.tier,
             model_name=model_name,
             model_version=model_version,
+            queue_name=queue_name,
         )
         logger.exception("Failed to deserialize Triton response")
         raise
@@ -220,6 +226,7 @@ def record_shadow_comparison(
         stable_version: PredictionResult,
         shadow_version: PredictionResult,
         model_name: str,
+        queue_name: Queue,
 ) -> None:
     try:
         if stable_version.is_anomaly == shadow_version.is_anomaly:
@@ -238,6 +245,7 @@ def record_shadow_comparison(
             tier=stable_version.tier,
             model_name=model_name,
             model_version=shadow_version.model_version,
+            queue_name=queue_name,
         )
         logger.exception("Failed to record shadow comparison")
         raise
@@ -279,6 +287,7 @@ def record_worker_failure(
         tier: str | None = None,
         model_name: str | None = None,
         model_version: str | None = None,
+        queue_name: Queue | None = None,
 ) -> None:
     WORKER_PROCESSING_FAILURES_TOTAL.labels(
         stage=stage,
@@ -286,4 +295,5 @@ def record_worker_failure(
         tier=_label_value(tier),
         model_name=model_name or "unknown",
         model_version=model_version or "unknown",
+        queue_name=queue_name
     ).inc()
