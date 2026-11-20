@@ -23,13 +23,27 @@ spec:
         - name: prometheus-config
           configMap:
             name: prometheus-config
+
+        - name: vllm-scrape-targets
+          secret:
+            secretName: anomaly-inference-secret
+            items:
+              - key: vllm-targets.yaml
+                path: targets.yaml
+
       containers:
         - name: prometheus
           image: prom/prometheus
           imagePullPolicy: IfNotPresent
+
           volumeMounts:
-            - mountPath: /etc/prometheus/
-              name: prometheus-config
+            - name: prometheus-config
+              mountPath: /etc/prometheus/
+              readOnly: true
+
+            - name: vllm-scrape-targets
+              mountPath: /etc/vllm-targets
+              readOnly: true
           ports:
             - containerPort: 9090
               protocol: TCP
