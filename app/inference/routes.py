@@ -3,7 +3,7 @@ import json
 import logging
 
 from app.api.transaction import Transaction
-from app.inference.clients import inference_client
+from app.inference.clients import triton_client
 from app.inference.configs.queue_config import QueueType
 from app.inference.queue_service import enqueue_job
 from app.inference.models.queue_job_model import QueueJob, QueueFullError, RedisUnavailableError
