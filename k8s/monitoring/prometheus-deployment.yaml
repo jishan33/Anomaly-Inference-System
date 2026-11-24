@@ -7,6 +7,8 @@ metadata:
 
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
 
   selector:
     matchLabels:
@@ -18,8 +20,16 @@ spec:
         app: prometheus
 
     spec:
+      securityContext:
+        fsGroup: 65536
+
       serviceAccountName: prometheus
+
       volumes:
+        - name: prometheus-data
+          persistentVolumeClaim:
+            claimName: prometheus-data
+
         - name: prometheus-config
           configMap:
             name: prometheus-config
@@ -28,15 +38,25 @@ spec:
           secret:
             secretName: anomaly-inference-secret
             items:
-              - key: vllm-targets.yaml
-                path: targets.yaml
+              - key: vllm-server-metric-targets.yaml
+                path: server-targets.yaml
+              - key: vllm-gpu-metric-targets.yaml
+                path: gpu-targets.yaml
 
       containers:
         - name: prometheus
           image: prom/prometheus
           imagePullPolicy: IfNotPresent
+          args:
+              - --config.file=/etc/prometheus/prometheus.yml
+              - --storage.tsdb.path=/prometheus
+              - --storage.tsdb.retention.time=30d
+              - --storage.tsdb.retention.size=7GB
 
           volumeMounts:
+            - name: prometheus-data
+              mountPath: /prometheus
+
             - name: prometheus-config
               mountPath: /etc/prometheus/
               readOnly: true

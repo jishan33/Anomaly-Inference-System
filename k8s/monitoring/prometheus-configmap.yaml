@@ -8,12 +8,20 @@ data:
       scrape_interval: 15s
 
     scrape_configs:
+      - job_name: 'vllm-gpu-runpod'
+        scheme: https
+        metrics_path: /metrics
+        file_sd_configs:
+          - files: 
+              - /etc/vllm-targets/gpu-targets.yaml
+              
       - job_name: 'vllm-runpod'
         scheme: https
         metrics_path: /metrics
         file_sd_configs:
           - files:
-              - /etc/vllm-targets/targets.yaml
+              - /etc/vllm-targets/server-targets.yaml
+              
       # Dynamic Pod Discovery for your API and Workers
       - job_name: 'kubernetes-pods'
         kubernetes_sd_configs:
