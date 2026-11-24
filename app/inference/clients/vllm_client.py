@@ -3,11 +3,12 @@ import httpx2
 import os
 
 from app.api.transaction import Transaction, generate_risk_evaluated_transaction
-from httpx2 import Response
-from openai import AsyncOpenAI, APITimeoutError, APIConnectionError
-from typing import List
-
 from app.inference.models.risk_summary_model import RiskSummaryResponse, to_risk_summary_requests
+from app.shared.metrics import VLLM_CLIENT_REQUESTS, VLLM_CLIENT_ERRORS
+from httpx2 import Response
+from openai import AsyncOpenAI, APITimeoutError, APIConnectionError, APIStatusError
+from pydantic import ValidationError
+from typing import List
 
 URL = os.getenv("VLLM_URL")
 API_KEY = os.getenv("VLLM_API_KEY")
@@ -75,26 +76,59 @@ async def generate_risk_summaries(client: AsyncOpenAI, transactions_with_job_ids
         for request in requests
     ]
 
-    async with client:
-        result = await client.post(
-            "/chat/completions/batch",
-            cast_to=dict,
-            body={
-                "model": "request-explainer",
-                "messages": conversations,
-                "max_tokens": 1000,
-                "temperature": 0,
-                "stream": False,
-            },
-        )
+    if not conversations:
+        return []
 
-    return [
-        RiskSummaryResponse(
-            index=choice["index"],
-            content=choice["message"]["content"],
-        )
-        for choice in result["choices"]
-    ]
+    VLLM_CLIENT_REQUESTS.inc()
+    try:
+        async with client:
+            result = await client.post(
+                "/chat/completions/batch",
+                cast_to=dict,
+                body={
+                    "model": "request-explainer",
+                    "messages": conversations,
+                    "max_tokens": 300,
+                    "temperature": 0,
+                    "stream": False,
+                },
+            )
+    except APITimeoutError:
+        VLLM_CLIENT_ERRORS.labels("timeout", "none").inc()
+        raise
+    except APIConnectionError:
+        VLLM_CLIENT_ERRORS.labels("connection", "none").inc()
+        raise
+    except APIStatusError as exc:
+        VLLM_CLIENT_ERRORS.labels("http", str(exc.status_code)).inc()
+        raise
+
+    try:
+        choices =  result["choices"]
+        if not isinstance(choices, list):
+            raise ValueError("Expected a list of choices")
+
+        summaries = [
+            RiskSummaryResponse(
+                index=choice["index"],
+                content=choice["message"]["content"],
+            )
+            for choice in choices
+        ]
+
+        # This application expects exactly one answer per conversation.
+        expected_indices = set(range(len(conversations)))
+        if (
+                len(summaries) != len(conversations)
+                or {summary.index for summary in summaries} != expected_indices
+        ):
+            raise ValueError("Response choices do not match the input batch")
+
+        return sorted(summaries, key=lambda summary: summary.index)
+
+    except (KeyError, TypeError, ValueError, ValidationError) as exc:
+        VLLM_CLIENT_ERRORS.labels("invalid_response", "none").inc()
+        raise ValueError("Invalid vLLM batch response") from exc
 
 
 if __name__ == "__main__":
