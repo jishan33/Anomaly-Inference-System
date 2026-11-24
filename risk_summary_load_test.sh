@@ -1,8 +1,8 @@
 #!/bin/bash
 
-BATCH_SIZE=${BATCH_SIZE:-500}
+BATCH_SIZE=${BATCH_SIZE:-100}
 URL=${URL:-http://localhost:80/risk_summary/async}
-DURATION=120
+DURATION=1200
 PAUSE_SECONDS=2
 END_TIME=$((SECONDS + DURATION))
 
@@ -34,6 +34,12 @@ while (( SECONDS < END_TIME )); do
     TRANSACTION_TOKEN="TXN_$(uuidgen | tr -d '-')"
     CUSTOMER_TOKEN="C_$(uuidgen | tr -d '-' | cut -c 1-28)"
 
+    if ((RANDOM % 2 == 0)); then
+      IS_NEW_DESTINATION=true
+    else
+      IS_NEW_DESTINATION=false
+    fi
+
     curl -sS --max-time 10 \
       -X POST "$URL" \
       -H "Content-Type: application/json" \
@@ -44,7 +50,8 @@ while (( SECONDS < END_TIME )); do
         \"created_at\": \"$CREATED_AT\",
         \"type\": \"$TYPE\",
         \"destination_risk_score\": $RISK_SCORE,
-        \"risk_label\": \"$RISK_LABEL\"
+        \"risk_label\": \"$RISK_LABEL\",
+        \"is_new_destination\": \"$IS_NEW_DESTINATION\"
       }" &
   done
 
