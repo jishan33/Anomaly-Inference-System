@@ -232,3 +232,15 @@ PREDICTION_SCORE_DIFF = Histogram(
     ["model_name"],
     buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0]
 )
+
+
+VLLM_CLIENT_REQUESTS = Counter(
+    "vllm_client_requests_total",
+    "Number of vLLM batch calls",
+)
+
+VLLM_CLIENT_ERRORS = Counter(
+    "vllm_client_errors_total",
+    "Failed vLLM batch calls",
+    ["error_type", "status_code"],
+)
