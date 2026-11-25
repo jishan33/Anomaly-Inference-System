@@ -1,8 +1,8 @@
 #!/bin/bash
 
-BATCH_SIZE=${BATCH_SIZE:-100}
+BATCH_SIZE=${BATCH_SIZE:-50}
 URL=${URL:-http://localhost:80/risk_summary/async}
-DURATION=1200
+DURATION=2400
 PAUSE_SECONDS=2
 END_TIME=$((SECONDS + DURATION))
 
