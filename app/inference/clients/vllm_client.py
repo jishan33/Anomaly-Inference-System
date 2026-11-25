@@ -1,10 +1,12 @@
 import asyncio
+import time
+
 import httpx2
 import os
 
 from app.api.transaction import Transaction, generate_risk_evaluated_transaction
 from app.inference.models.risk_summary_model import RiskSummaryResponse, to_risk_summary_requests
-from app.shared.metrics import VLLM_CLIENT_REQUESTS, VLLM_CLIENT_ERRORS
+from app.shared.metrics import VLLM_CLIENT_REQUESTS, VLLM_CLIENT_ERRORS, VLLM_CLIENT_BATCH_REQUEST_LATENCY
 from httpx2 import Response
 from openai import AsyncOpenAI, APITimeoutError, APIConnectionError, APIStatusError
 from pydantic import ValidationError
@@ -80,6 +82,7 @@ async def generate_risk_summaries(client: AsyncOpenAI, transactions_with_job_ids
         return []
 
     VLLM_CLIENT_REQUESTS.inc()
+    start = time.perf_counter()
     try:
         async with client:
             result = await client.post(
@@ -93,6 +96,7 @@ async def generate_risk_summaries(client: AsyncOpenAI, transactions_with_job_ids
                     "stream": False,
                 },
             )
+
     except APITimeoutError:
         VLLM_CLIENT_ERRORS.labels("timeout", "none").inc()
         raise
@@ -102,6 +106,10 @@ async def generate_risk_summaries(client: AsyncOpenAI, transactions_with_job_ids
     except APIStatusError as exc:
         VLLM_CLIENT_ERRORS.labels("http", str(exc.status_code)).inc()
         raise
+
+    finally:
+        duration_seconds = time.perf_counter() - start
+        VLLM_CLIENT_BATCH_REQUEST_LATENCY.observe(duration_seconds)
 
     try:
         choices =  result["choices"]

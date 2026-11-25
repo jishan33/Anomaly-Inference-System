@@ -215,18 +215,10 @@ async def process_batch(
 
     transactions_with_job_ids: list[tuple[Transaction, str]] = [(job.request, job.job_id) for job in batch]
 
-    start_inference = time.time()
+    start_inference = time.perf_counter()
 
     try:
         results: list[PredictionResult] | list[RiskSummaryResponse] = await _determine_workload_processor(queue_name, transactions_with_job_ids, tier)
-
-        latency = time.time() - start_inference
-
-        WORKER_PROCESSING_LATENCY.labels(
-            worker_role=worker_role,
-            tier=tier,
-            queue_name=queue_name,
-        ).observe(latency)
 
     except Exception as e:
         logger.warning("Batch inference failed for %s jobs: %s", num_jobs, e)
@@ -238,6 +230,16 @@ async def process_batch(
         )
 
         return False
+
+    finally:
+        duration_seconds = time.perf_counter() - start_inference
+
+        WORKER_PROCESSING_LATENCY.labels(
+            worker_role=worker_role,
+            tier=tier,
+            queue_name=queue_name,
+        ).observe(duration_seconds)
+
 
     if len(results) != len(batch):
         logger.error(
