@@ -123,13 +123,13 @@ def preprocess_input(features: PredictionRequest, model_version: str, model_name
         raise
 
     finally:
-        serialize_end = time.perf_counter()
+        duration_seconds = time.perf_counter() - serialize_start
 
         WORKER_TRITON_SERIALIZATION_SECONDS.labels(
             tier=features.tier,
             model_name=model_name,
             model_version=model_version,
-        ).observe(serialize_end - serialize_start)
+        ).observe(duration_seconds)
 
 def run_inference(inputs: list[InferInput], features: PredictionRequest, model_version: str, model_name: str, queue_name:Queue) -> InferResult:
     outputs: list[InferRequestedOutput] = [

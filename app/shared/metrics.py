@@ -244,3 +244,8 @@ VLLM_CLIENT_ERRORS = Counter(
     "Failed vLLM batch calls",
     ["error_type", "status_code"],
 )
+
+VLLM_CLIENT_BATCH_REQUEST_LATENCY = Histogram(
+    "vllm_client_batch_request_latency_seconds",
+    "Time spent processing risk summaries",
+)
