@@ -29,7 +29,11 @@ def get_queue_depth(queue_name: Queue) -> int|None:
         return queue_depth
 
     except Exception as e:
-        record_metric_safely(lambda: REDIS_OPERATION_FAILURES_TOTAL.labels(operation=f"redis_llen_{queue_name}").inc())
+        record_metric_safely(
+            lambda: REDIS_OPERATION_FAILURES_TOTAL.labels(
+                operation=f"redis_llen_{queue_name}",
+                queue_name=queue_name
+            ).inc())
 
         logger.exception("Redis unavailable for LLEN operation on %s: %s", queue_name, e)
         return None
@@ -77,7 +81,10 @@ def enqueue_job(queue_type: QueueType, request: Transaction) -> QueueJob:
         )
 
     except Exception as e:
-        record_metric_safely(lambda: REDIS_OPERATION_FAILURES_TOTAL.labels(operation=f"redis_enqueue_{queue_name}").inc())
+        record_metric_safely(
+            lambda: REDIS_OPERATION_FAILURES_TOTAL.labels(
+                operation=f"redis_enqueue_{queue_name}", queue_name=queue_name).inc()
+        )
         logger.exception(f'redis unavailable during enqueue {queue_name} job: {e}')
 
         raise RedisUnavailableError(
@@ -116,9 +123,7 @@ def save_result(job: QueueJob, result: PredictionResult | RiskSummaryResponse, q
         requeue_or_dlq_failed_batch([job], queue_name, "failed_to_save_result")
 
         record_metric_safely(
-            lambda: REDIS_OPERATION_FAILURES_TOTAL.labels(
-            operation="redis_set_result",
-            ).inc()
+            lambda: REDIS_OPERATION_FAILURES_TOTAL.labels(operation="redis_set_result", queue_name=queue_name).inc()
         )
 
         logger.error("Redis unavailable during set_result for job %s: %s", job.job_id, e)
@@ -133,15 +138,16 @@ def save_result(job: QueueJob, result: PredictionResult | RiskSummaryResponse, q
         )
         return True
 
-def move_to_dlq(raw_job: RawJob, reason: str) -> bool:
+def move_to_dlq(raw_job: RawJob, reason: str, source_queue: Queue) -> bool:
     dlq_payload = DlqPayload(
         raw_job= raw_job.decode() if isinstance(raw_job, bytes) else raw_job,
+        source_queue = source_queue,
         reason= reason,
         failed_at= time.time()
     )
 
     record_metric_safely(
-        lambda: DEAD_LETTER_QUEUE_PUSH_ATTEMPTS_TOTAL.labels(reason=reason).inc()
+        lambda: DEAD_LETTER_QUEUE_PUSH_ATTEMPTS_TOTAL.labels(reason=reason, source_queue=source_queue).inc()
     )
 
     try:
@@ -151,26 +157,28 @@ def move_to_dlq(raw_job: RawJob, reason: str) -> bool:
         )
 
     except Exception as e:
-        record_metric_safely(lambda: DLQ_PUSH_FAILURE_TOTAL.labels(reason=reason).inc())
-        record_metric_safely(lambda: REDIS_OPERATION_FAILURES_TOTAL.labels(operation="redis_dlq_push").inc())
+        record_metric_safely(lambda: DLQ_PUSH_FAILURE_TOTAL.labels(reason=reason, source_queue=source_queue).inc())
+        record_metric_safely(
+            lambda: REDIS_OPERATION_FAILURES_TOTAL.labels(operation="redis_dlq_push", queue_name=source_queue).inc()
+        )
 
         logger.exception(
-            f"CRITICAL: failed to move job to DLQ. "
+            f"CRITICAL: failed to move {source_queue} job to DLQ. "
             f"reason={reason}, error={e}, raw_job={raw_job}"
         )
         return False
 
     else:
-        record_metric_safely(lambda: DEAD_LETTER_QUEUE_JOBS_TOTAL.labels(reason=reason).inc())
-        logger.info(f"Moved job to DLQ. reason={reason}")
+        record_metric_safely(lambda: DEAD_LETTER_QUEUE_JOBS_TOTAL.labels(reason=reason, source_queue=source_queue).inc())
+        logger.info(f"Moved {source_queue} job to DLQ. reason={reason}")
         return True
 
-def requeue_or_dlq_failed_batch(batch: list[QueueJob], queue_name: str, reason: str) -> None:
+def requeue_or_dlq_failed_batch(batch: list[QueueJob], queue_name: Queue, reason: str) -> None:
     for job in batch:
         job.retry_count += 1
 
         if job.retry_count >= MAX_JOB_RETRIES:
-            move_to_dlq(job.model_dump_json(), reason)
+            move_to_dlq(job.model_dump_json(), reason, queue_name)
 
         try:
             redis_circuit_breaker.call(
@@ -179,7 +187,9 @@ def requeue_or_dlq_failed_batch(batch: list[QueueJob], queue_name: str, reason: 
             )
 
         except Exception as requeue_error:
-            record_metric_safely(lambda:  REDIS_OPERATION_FAILURES_TOTAL.labels(operation="redis_requeue").inc())
+            record_metric_safely(
+                lambda: REDIS_OPERATION_FAILURES_TOTAL.labels(operation="redis_requeue", queue_name=queue_name).inc()
+            )
 
             logger.exception(
                 "Failed to requeue job %s: %s",

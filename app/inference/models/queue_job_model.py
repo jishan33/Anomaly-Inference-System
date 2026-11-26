@@ -16,6 +16,7 @@ class QueueJob(BaseModel):
 
 class DlqPayload(TypedDict):
     raw_job: RawJob
+    source_queue: Queue
     reason: str
     failed_at: float
 
