@@ -10,7 +10,7 @@ from app.inference.model_selection import determine_model_name, determine_model_
     SelectedModelVersions
 from app.shared.metrics import WORKER_TRITON_REQUEST_LATENCY_SECONDS, WORKER_TRITON_SERIALIZATION_SECONDS, \
     WORKER_TRITON_DESERIALIZATION_SECONDS, PREDICTION_RESULT_TOTAL, PREDICTION_SCORE_HISTOGRAM, \
-    PREDICTION_AGREEMENT_TOTAL, PREDICTION_DISAGREEMENT_TOTAL, PREDICTION_SCORE_DIFF, WORKER_PROCESSING_FAILURES_TOTAL
+    PREDICTION_AGREEMENT_TOTAL, PREDICTION_DISAGREEMENT_TOTAL, PREDICTION_SCORE_DIFF, TRITON_CLIENT_ERRORS_TOTAL
 from tritonclient.grpc import InferResult, InferRequestedOutput, InferInput
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ def process_anomaly_detection(transactions_with_job_ids:list[tuple[Transaction, 
             results.append(result)
 
         except Exception as e:
-            record_worker_failure(
+            record_triton_client_failure(
                 stage="transaction_processing",
                 error=e,
                 tier=tier,
@@ -49,7 +49,7 @@ def process_transaction(features: PredictionRequest, queue_name:Queue) -> Predic
         versions: SelectedModelVersions = determine_model_versions_based_on_rollout_mode(model_name)
 
     except Exception as e:
-        record_worker_failure(
+        record_triton_client_failure(
             stage="model_selection",
             error=e,
             tier=features.tier,
@@ -66,7 +66,7 @@ def process_transaction(features: PredictionRequest, queue_name:Queue) -> Predic
             record_shadow_comparison(stable, shadow, model_name, queue_name)
 
         except Exception as e:
-            record_worker_failure(
+            record_triton_client_failure(
                 stage="shadow_inference",
                 error=e,
                 tier=features.tier,
@@ -111,7 +111,7 @@ def preprocess_input(features: PredictionRequest, model_version: str, model_name
         return inputs
 
     except Exception as e:
-        record_worker_failure(
+        record_triton_client_failure(
             stage="triton_serialization",
             error=e,
             tier=features.tier,
@@ -150,7 +150,7 @@ def run_inference(inputs: list[InferInput], features: PredictionRequest, model_v
         return response
 
     except Exception as e:
-        record_worker_failure(
+        record_triton_client_failure(
             stage="triton_request",
             error=e,
             tier=features.tier,
@@ -202,7 +202,7 @@ def postprocess_output(raw_response: InferResult, features: PredictionRequest, m
         return result
 
     except Exception as e:
-        record_worker_failure(
+        record_triton_client_failure(
             stage="triton_deserialization",
             error=e,
             tier=features.tier,
@@ -239,7 +239,7 @@ def record_shadow_comparison(
         ).observe(abs(shadow_version.score - stable_version.score))
 
     except Exception as e:
-        record_worker_failure(
+        record_triton_client_failure(
             stage="shadow_comparison",
             error=e,
             tier=stable_version.tier,
@@ -261,7 +261,7 @@ def get_model_metadata():
         }
 
     except Exception as e:
-        record_worker_failure(
+        record_triton_client_failure(
             stage="model_metadata_fetch",
             error=e,
         )
@@ -281,7 +281,7 @@ def _label_value(value) -> str:
     return str(getattr(value, "value", value))
 
 
-def record_worker_failure(
+def record_triton_client_failure(
         stage: str,
         error: Exception,
         tier: str | None = None,
@@ -289,7 +289,7 @@ def record_worker_failure(
         model_version: str | None = None,
         queue_name: Queue | None = None,
 ) -> None:
-    WORKER_PROCESSING_FAILURES_TOTAL.labels(
+    TRITON_CLIENT_ERRORS_TOTAL.labels(
         stage=stage,
         error_type=type(error).__name__,
         tier=_label_value(tier),
