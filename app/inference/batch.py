@@ -4,15 +4,15 @@ import time
 from dataclasses import dataclass
 from typing import Optional
 
-from app.api.transaction import Transaction
+from app.api.models.transaction import Transaction
 from app.inference.clients.vllm_client import generate_risk_summaries, create_vllm_client
-from app.inference.models.risk_summary_model import RiskSummaryResponse, to_risk_summary_requests
+from app.inference.models.risk_summary_model import RiskSummaryResponse
 from app.shared.redis import redis_client
 from app.inference.configs.queue_config import JOB_TTL_SECONDS, MAX_JOB_RETRIES, OptionalRawJob, Tier, Queue
 from app.inference.models.prediction_model import PredictionResult
 from app.inference.clients.triton_client import process_anomaly_detection
 from app.shared.metrics import QUEUE_DEPTH, WORKER_PROCESSING_LATENCY, QUEUE_WAIT_TIME, REDIS_OPERATION_FAILURES_TOTAL, WORKER_BATCH_SIZE, WORKER_BATCH_FLUSH_TOTAL
-from app.inference.queue_service import get_queue_depth, move_to_dlq, save_result
+from app.inference.queue_service import get_queue_depth, move_to_dlq, save_result, requeue_or_dlq_failed_batch
 from app.inference.models.queue_job_model import QueueJob
 from app.shared.redis import redis_circuit_breaker
 
@@ -79,30 +79,6 @@ def _observe_queue_wait_time(batch: list[QueueJob], tier: Tier, worker_role: str
             tier=tier,
             queue_name=queue_name,
         ).observe(queue_wait)
-
-def _requeue_or_dlq_failed_batch(batch: list[QueueJob], queue_name: str, reason: str) -> None:
-    for job in batch:
-        job.retry_count += 1
-
-        if job.retry_count >= MAX_JOB_RETRIES:
-            move_to_dlq(job.model_dump_json(), reason)
-
-        try:
-            redis_circuit_breaker.call(
-                lambda: redis_client.rpush(queue_name, job.model_dump_json()),
-                operation_name="redis_requeue",
-            )
-
-        except Exception as requeue_error:
-            REDIS_OPERATION_FAILURES_TOTAL.labels(
-                operation="redis_requeue",
-            ).inc()
-
-            logger.error(
-                "Failed to requeue job %s: %s",
-                job.job_id,
-                requeue_error,
-            )
 
 async def _determine_workload_processor(queue_name: Queue, transactions_with_job_ids: list[tuple[Transaction, str]], tier:Tier) -> list[PredictionResult] | list[RiskSummaryResponse]:
     if queue_name in (Queue.ANOMALY_PREDICT_VIP_QUEUE, Queue.ANOMALY_PREDICT_FREE_QUEUE):
@@ -223,7 +199,7 @@ async def process_batch(
     except Exception as e:
         logger.warning("Batch inference failed for %s jobs: %s", num_jobs, e)
 
-        _requeue_or_dlq_failed_batch(
+        requeue_or_dlq_failed_batch(
             batch=batch,
             queue_name=queue_name,
             reason="batch_inference_failed",
@@ -249,7 +225,7 @@ async def process_batch(
         )
 
         for job in batch[len(results):]:
-            _requeue_or_dlq_failed_batch(
+            requeue_or_dlq_failed_batch(
                 batch=[job],
                 queue_name=queue_name,
                 reason="missing_inference_result",
@@ -258,7 +234,7 @@ async def process_batch(
     all_saved = True
 
     for job, result in zip(batch, results):
-        saved = save_result(job, result)
+        saved = save_result(job, result, queue_name)
         all_saved = all_saved and saved
 
     return all_saved

@@ -14,8 +14,9 @@ from starlette.responses import RedirectResponse
 
 from app.api.customer import generate_random_customer
 from app.api.request_logging_middleware import RequestLoggingMiddleware
-from app.api.transaction import Transaction, safe_get_volume, redis_circuit_breaker, generate_random_transaction, \
+from app.api.transaction import safe_get_volume, redis_circuit_breaker, generate_random_transaction, \
     generate_risk_evaluated_transaction
+from app.api.models.transaction import Transaction
 from app.inference.routes import router
 from app.shared.redis import redis_client
 from app.shared.config import setup_logging

@@ -1,5 +1,6 @@
 from app.shared import config
-from app.api.transaction import Transaction
+from app.api.models.transaction import Transaction
+
 
 # ------------------------
 # Anomaly logic
