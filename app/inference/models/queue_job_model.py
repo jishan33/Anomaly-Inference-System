@@ -1,7 +1,7 @@
 from typing import TypedDict
 from pydantic import BaseModel
 
-from app.api.transaction import Transaction
+from app.api.models.transaction import Transaction
 from app.inference.configs.queue_config import Tier, QueueType, RawJob, Queue
 
 

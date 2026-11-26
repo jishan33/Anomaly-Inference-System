@@ -3,7 +3,7 @@ import numpy as np
 import time
 import tritonclient.grpc as grpcclient
 
-from app.api.transaction import Transaction
+from app.api.models.transaction import Transaction
 from app.inference.models.prediction_model import to_prediction_request, PredictionRequest, PredictionResult
 from app.inference.configs.queue_config import Tier, Queue
 from app.inference.model_selection import determine_model_name, determine_model_versions_based_on_rollout_mode, \

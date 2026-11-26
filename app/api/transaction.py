@@ -3,44 +3,19 @@ import random
 import time
 
 from app.api.customer import CustomerTokenStr, generate_exact_customer_token
+from app.api.models.transaction import Transaction, RiskLabel
 from app.shared.metrics import VOLUME_GAUGE
 from app.api.retry import retry_with_backoff
 from app.shared.redis import redis_circuit_breaker, redis_client
 from datetime import timezone
-from enum import StrEnum
 from faker import Faker
-from pydantic import BaseModel, Field
 from redis import RedisError
-from typing import List, Annotated
+from typing import List
 
 logger = logging.getLogger(__name__)
 KEY = "transactions"
 WINDOW_SECONDS = 60
 
-TransactionTokenStr= Annotated[
-    str,
-    Field(
-        min_length=20,
-        max_length=80,
-        pattern=r"^TXN_[A-Za-z0-9]{16,76}$"
-    )
-]
-
-class RiskLabel(StrEnum):
-    HIGH_SCAM_RISK = "HIGH_SCAM_RISK"
-    POTENTIAL_SCAM = "POTENTIAL_SCAM"
-    LOW_RISK = "LOW_RISK"
-
-class Transaction(BaseModel):
-    amount: float
-    customer_token: CustomerTokenStr
-    created_at: str
-    transaction_token: TransactionTokenStr
-    type: str
-    is_new_destination: bool | None = None
-    destination_risk_score: int | None = None
-    destination_risk_signals: List[str] | None = None
-    risk_label: RiskLabel | None = None
 
 def generate_random_transaction() -> Transaction:
     fake = Faker()

@@ -1,11 +1,11 @@
 import unittest
-from datetime import datetime, timedelta
-from unittest.mock import patch
 
+from app.api import transaction as txn_module
+from app.api.models.transaction import RiskLabel, Transaction
+from datetime import datetime, timedelta
 from pydantic import ValidationError
 from redis.exceptions import RedisError
-from app.api import transaction as txn_module
-
+from unittest.mock import patch
 
 CUSTOMER_TOKEN = "C_ABCDEFGHIJKLM"
 TRANSACTION_TOKEN = "TXN_A1B2C3D4E5F60789"
@@ -14,7 +14,7 @@ NOW = 1_000.0
 
 
 def make_transaction(token=TRANSACTION_TOKEN):
-    return txn_module.Transaction(
+    return Transaction(
         amount=150.0,
         created_at="2026-11-12T03:00:00+00:00",
         type="PAYMENT",
@@ -51,7 +51,7 @@ class TestTransaction(unittest.TestCase):
     def test_generates_valid_transaction(self):
         transaction = txn_module.generate_random_transaction()
 
-        self.assertIsInstance(transaction, txn_module.Transaction)
+        self.assertIsInstance(transaction, Transaction)
         self.assertGreater(transaction.amount, 0)
         self.assertIn(transaction.type, {"PAYMENT", "REFUND", "TRANSFER"})
         self.assertRegex(transaction.transaction_token, r"^TXN_[A-F0-9]{26}$")
@@ -184,12 +184,12 @@ class TestSafeVolumeWrappers(unittest.TestCase):
 class TestGenerateRiskEvaluatedTransaction(unittest.TestCase):
     def test_assigns_risk_labels_at_score_boundaries(self):
         cases = [
-            (0, txn_module.RiskLabel.LOW_RISK),
-            (1, txn_module.RiskLabel.LOW_RISK),
-            (2, txn_module.RiskLabel.POTENTIAL_SCAM),
-            (5, txn_module.RiskLabel.POTENTIAL_SCAM),
-            (6, txn_module.RiskLabel.HIGH_SCAM_RISK),
-            (10, txn_module.RiskLabel.HIGH_SCAM_RISK),
+            (0, RiskLabel.LOW_RISK),
+            (1, RiskLabel.LOW_RISK),
+            (2, RiskLabel.POTENTIAL_SCAM),
+            (5, RiskLabel.POTENTIAL_SCAM),
+            (6, RiskLabel.HIGH_SCAM_RISK),
+            (10, RiskLabel.HIGH_SCAM_RISK),
         ]
 
         for score, expected_label in cases:
@@ -201,7 +201,7 @@ class TestGenerateRiskEvaluatedTransaction(unittest.TestCase):
                 self.assertEqual(txn.risk_label, expected_label)
 
                 # For the version that adds destination_risk_signals.
-                if expected_label == txn_module.RiskLabel.LOW_RISK:
+                if expected_label == RiskLabel.LOW_RISK:
                     self.assertEqual(txn.destination_risk_signals, [])
                 else:
                     self.assertEqual(len(txn.destination_risk_signals), 1)

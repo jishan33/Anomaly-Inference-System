@@ -1,10 +1,10 @@
 import asyncio
-import time
-
 import httpx2
+import time
 import os
 
-from app.api.transaction import Transaction, generate_risk_evaluated_transaction
+from app.api.transaction import generate_risk_evaluated_transaction
+from app.api.models.transaction import Transaction
 from app.inference.models.risk_summary_model import RiskSummaryResponse, to_risk_summary_requests
 from app.shared.metrics import VLLM_CLIENT_REQUESTS, VLLM_CLIENT_ERRORS, VLLM_CLIENT_BATCH_REQUEST_LATENCY
 from httpx2 import Response

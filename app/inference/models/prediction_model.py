@@ -1,4 +1,4 @@
-from app.api.transaction import Transaction
+from app.api.models.transaction import Transaction
 from app.inference.configs.queue_config import Tier
 from openai import BaseModel
 

@@ -3,7 +3,8 @@ from typing import List
 from openai import BaseModel
 from pydantic import BaseModel
 
-from app.api.transaction import RiskLabel, Transaction
+from app.api.models.transaction import Transaction, RiskLabel
+
 
 class RiskSummaryRequest(BaseModel):
     amount: float
