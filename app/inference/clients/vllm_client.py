@@ -5,6 +5,7 @@ import os
 
 from app.api.transaction import generate_risk_evaluated_transaction
 from app.api.models.transaction import Transaction
+from app.inference.clients.triton_client import record_triton_client_failure
 from app.inference.models.risk_summary_model import RiskSummaryResponse, to_risk_summary_requests
 from app.shared.metrics import VLLM_CLIENT_REQUESTS, VLLM_CLIENT_ERRORS, VLLM_CLIENT_BATCH_REQUEST_LATENCY
 from httpx2 import Response

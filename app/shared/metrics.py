@@ -175,9 +175,9 @@ WORKER_PROCESSING_LATENCY = Histogram(
 
 )
 
-WORKER_PROCESSING_FAILURES_TOTAL = Counter(
-    "worker_processing_failures_total",
-    "Total number of worker processing failures by stage",
+TRITON_CLIENT_ERRORS_TOTAL = Counter(
+    "triton_client_errors_total",
+    "Total number of triton client errors by stage",
     ["stage", "error_type", "tier", "model_name", "model_version", "queue_name"],
 )
 
