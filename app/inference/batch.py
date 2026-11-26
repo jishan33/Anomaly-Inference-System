@@ -41,11 +41,11 @@ def _record_batch_metrics(batch: list[QueueJob], tier: Tier, worker_role: str, q
         reason=flush_reason,
     ).inc()
 
-def _parse_raw_job(raw_job: OptionalRawJob, queue_name: str) -> Optional[QueueJob]:
+def _parse_raw_job(raw_job: OptionalRawJob, queue_name: Queue) -> Optional[QueueJob]:
     try:
         return QueueJob.model_validate_json(raw_job)
     except (json.JSONDecodeError, TypeError, ValueError) as e:
-        move_to_dlq(raw_job, "invalid_job_payload")
+        move_to_dlq(raw_job, "invalid_job_payload", queue_name)
         logger.warning("Failed to parse job from %s: %s", queue_name, e)
         return None
 
@@ -53,13 +53,13 @@ def _is_job_expired(job: QueueJob) -> bool:
     return time.time() - job.created_at > JOB_TTL_SECONDS
 
 
-def _should_drop_job(job: QueueJob, raw_job: OptionalRawJob) -> bool:
+def _should_drop_job(job: QueueJob, raw_job: OptionalRawJob, queue_name: Queue) -> bool:
     if _is_job_expired(job):
-        move_to_dlq(raw_job, "job_expired")
+        move_to_dlq(raw_job, "job_expired", queue_name)
         return True
 
     if job.retry_count >= MAX_JOB_RETRIES:
-        move_to_dlq(raw_job, "max_retries_exceeded")
+        move_to_dlq(raw_job, "max_retries_exceeded", queue_name)
         return True
 
     return False
@@ -121,7 +121,8 @@ def _fetch_batch(queue_name: Queue,
             )
         except Exception as e:
             REDIS_OPERATION_FAILURES_TOTAL.labels(
-                operation="redis_lpop"
+                operation="redis_lpop",
+                queue_name=queue_name
             ).inc()
 
             logger.warning("Redis unavailable during lpop: %s", e)
@@ -138,7 +139,7 @@ def _fetch_batch(queue_name: Queue,
         if job is None:
             continue
 
-        if _should_drop_job(job, raw_job):
+        if _should_drop_job(job, raw_job, queue_name):
             continue
 
         batch.append(job)
