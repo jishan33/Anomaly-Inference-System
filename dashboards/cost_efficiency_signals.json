@@ -30,13 +30,13 @@
       },
       "id": 13,
       "panels": [],
-      "title": "Row title",
+      "title": "Woker",
       "type": "row"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffs1669wdlypsa"
+        "uid": "bg4fpgorvmupsc"
       },
       "fieldConfig": {
         "defaults": {
@@ -122,20 +122,20 @@
             "type": "prometheus",
             "uid": "ffs1669wdlypsa"
           },
-          "editorMode": "code",
-          "expr": "sum(rate(processed_requests_total{tier=\"free\"}[1m])) \n/ \n(clamp_min(\n  sum(kube_deployment_status_replicas_available{deployment=~\"shared-worker\"}),\n   1)\n)",
-          "legendFormat": "{{label_name}}",
+          "editorMode": "builder",
+          "expr": "sum(rate(processed_requests_total{tier=\"FREE\"}[1m])) / (clamp_min(sum(kube_deployment_status_replicas_available{deployment=~\"shared-worker\"}), 1))",
+          "legendFormat": "FREE",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Requests per Shared Worker Replica",
+      "title": "Requests rate per Shared Worker Replica",
       "type": "timeseries"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffs1669wdlypsa"
+        "uid": "bg4fpgorvmupsc"
       },
       "fieldConfig": {
         "defaults": {
@@ -222,19 +222,19 @@
             "uid": "ffs1669wdlypsa"
           },
           "editorMode": "builder",
-          "expr": "sum(rate(processed_requests_total{tier=\"vip\"}[1m])) / (clamp_min(sum(kube_deployment_status_replicas_available{deployment=~\"vip-worker\"}), 1))",
-          "legendFormat": "{{label_name}}",
+          "expr": "sum(rate(processed_requests_total{tier=\"VIP\"}[1m])) / (clamp_min(sum(kube_deployment_status_replicas_available{deployment=~\"vip-worker\"}), 1))",
+          "legendFormat": "VIP",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Requests per VIP Worker Replica",
+      "title": "Request rate per VIP Worker Replica",
       "type": "timeseries"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffs1669wdlypsa"
+        "uid": "bg4fpgorvmupsc"
       },
       "description": "worker end-to-end job processing latency vs number of shared worker",
       "fieldConfig": {
@@ -339,7 +339,7 @@
             "uid": "ffs1669wdlypsa"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(\n    0.95, \n    sum by(le) (rate(worker_processing_latency_seconds_bucket{tier=\"free\"}[5m])) \n)",
+          "expr": "histogram_quantile(\n    0.95, \n    sum by(le) (rate(worker_processing_latency_seconds_bucket{tier=\"FREE\"}[5m])) \n)",
           "legendFormat": "P95 latency ( seconds ) ",
           "range": true,
           "refId": "A"
@@ -349,7 +349,7 @@
             "type": "prometheus",
             "uid": "ffs1669wdlypsa"
           },
-          "editorMode": "code",
+          "editorMode": "builder",
           "expr": "sum(\n  kube_deployment_status_replicas_available{deployment=\"shared-worker\"}\n)",
           "instant": false,
           "legendFormat": "Shared worker replica ( num )",
@@ -363,7 +363,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffs1669wdlypsa"
+        "uid": "bg4fpgorvmupsc"
       },
       "description": "worker end-to-end job processing latency vs number of VIP worker",
       "fieldConfig": {
@@ -468,7 +468,7 @@
             "uid": "ffs1669wdlypsa"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(\n    0.95, \n    sum by(le) (rate(worker_processing_latency_seconds_bucket{tier=\"vip\"}[5m])) \n)",
+          "expr": "histogram_quantile(\n    0.95, \n    sum by(le) (rate(worker_processing_latency_seconds_bucket{tier=\"VIP\"}[5m])) \n)",
           "legendFormat": "P95 latency ( seconds ) ",
           "range": true,
           "refId": "A"
@@ -492,7 +492,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffs1669wdlypsa"
+        "uid": "bg4fpgorvmupsc"
       },
       "fieldConfig": {
         "defaults": {
@@ -547,7 +547,7 @@
               }
             ]
           },
-          "unit": "num/replica"
+          "unit": "/replica"
         },
         "overrides": []
       },
@@ -579,7 +579,7 @@
             "uid": "ffs1669wdlypsa"
           },
           "editorMode": "code",
-          "expr": "sum(inference_queue_depth{tier=\"free\"})/ (clamp_min(sum(kube_deployment_status_replicas_available{deployment=~\"shared-worker\"}), 1))",
+          "expr": "sum(inference_queue_depth{tier=\"FREE\"})/ (clamp_min(sum(kube_deployment_status_replicas_available{deployment=~\"shared-worker\"}), 1))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -591,7 +591,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffs1669wdlypsa"
+        "uid": "bg4fpgorvmupsc"
       },
       "fieldConfig": {
         "defaults": {
@@ -646,7 +646,7 @@
               }
             ]
           },
-          "unit": "num/replica"
+          "unit": "/replica"
         },
         "overrides": []
       },
@@ -678,7 +678,7 @@
             "uid": "ffs1669wdlypsa"
           },
           "editorMode": "builder",
-          "expr": "sum(inference_queue_depth{tier=\"vip\"}) / (clamp_min(sum(kube_deployment_status_replicas_available{deployment=~\"vip-worker\"}), 1))",
+          "expr": "sum(inference_queue_depth{tier=\"VIP\"}) / (clamp_min(sum(kube_deployment_status_replicas_available{deployment=~\"vip-worker\"}), 1))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -690,7 +690,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffs1669wdlypsa"
+        "uid": "bg4fpgorvmupsc"
       },
       "description": "Average CPU seconds used per processed request. Only show this metric if there were enough requests to make the ratio meaningful.",
       "fieldConfig": {
@@ -778,7 +778,7 @@
             "uid": "ffs1669wdlypsa"
           },
           "editorMode": "code",
-          "expr": "sum(increase(process_cpu_seconds_total{app=\"shared-worker\"}[10m]))\n/\nsum(increase(processed_requests_total{tier=\"free\"}[10m]))\nand\nsum(increase(processed_requests_total{tier=\"free\"}[10m])) > 10",
+          "expr": "sum(increase(process_cpu_seconds_total{app=\"shared-worker\"}[10m]))\n/\nsum(increase(processed_requests_total{tier=\"FREE\"}[10m]))\nand\nsum(increase(processed_requests_total{tier=\"FREE\"}[10m])) > 10",
           "legendFormat": "{{label_name}}",
           "range": true,
           "refId": "A"
@@ -790,7 +790,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffs1669wdlypsa"
+        "uid": "bg4fpgorvmupsc"
       },
       "fieldConfig": {
         "defaults": {
@@ -877,7 +877,7 @@
             "uid": "ffs1669wdlypsa"
           },
           "editorMode": "code",
-          "expr": "sum(increase(process_cpu_seconds_total{app=\"vip-worker\"}[10m]))\n/\nsum(increase(processed_requests_total{tier=\"vip\"}[10m]))\nand\nsum(increase(processed_requests_total{tier=\"vip\"}[10m])) > 10",
+          "expr": "sum(increase(process_cpu_seconds_total{app=\"vip-worker\"}[10m]))\n/\nsum(increase(processed_requests_total{tier=\"VIP\"}[10m]))\nand\nsum(increase(processed_requests_total{tier=\"VIP\"}[10m])) > 10",
           "legendFormat": "{{label_name}}",
           "range": true,
           "refId": "A"
@@ -902,7 +902,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffs1669wdlypsa"
+        "uid": "bg4fpgorvmupsc"
       },
       "fieldConfig": {
         "defaults": {
@@ -1001,7 +1001,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ffs1669wdlypsa"
+        "uid": "bg4fpgorvmupsc"
       },
       "description": "1.0  = no batching\n4.0  = average batch size 4\n8.0  = near max batch size",
       "fieldConfig": {
@@ -1106,13 +1106,13 @@
     "list": []
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-30m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "Cost / Efficiency Signals",
   "uid": "adfggll",
-  "version": 16,
+  "version": 6,
   "weekStart": ""
 }
